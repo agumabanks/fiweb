@@ -1,0 +1,17 @@
+/* ************************
+   02.9: Preloader
+   ********************* */
+
+   .preloader {
+      position: fixed;
+      inline-size: 100%;
+      block-size: 100%;
+      background-color: var(--bs-white);
+      z-index: 9999999;
+      display: grid;
+      place-items: center;
+   }
+
+   .spinner-grow {
+      background-color: var(--bs-primary);
+   }

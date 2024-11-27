@@ -1,0 +1,77 @@
+/* ************************
+   05.3: Cart
+   ********************* */
+
+// .cart-step-list {
+//     @extend %list-unstyled;
+//     display: flex;
+//     align-items: center;
+//     flex-wrap: wrap;
+//     column-gap: toRem(220);
+//     row-gap: toRem(10);
+//     @include tab {
+//         column-gap: toRem(160);
+//     }
+//     @include mobileSm {
+//         column-gap: toRem(60);
+//     }
+//     li {
+//         position: relative;
+//         display: flex;
+//         align-items: center;
+//         gap: toRem(8);
+//         &:not(:last-child) {
+//             &::after {
+//                 position: absolute;
+//                 inline-size: toRem(218);
+//                 block-size: toRem(1);
+//                 background-color: var(--secondary-body-color);
+//                 inset-inline-start: calc(100% + 1px);
+//                 inset-block-start: 50%;
+//                 transform: translateY(-50%);
+//                 content: "";
+//                 @include tab {
+//                     inline-size: toRem(158);
+//                 }
+//                 @include mobileSm {
+//                     inline-size: toRem(60);
+//                 }
+//             }
+//         }
+
+//         span {
+//             block-size: toRem(35);
+//             inline-size: toRem(35);
+//             @extend %rounded;
+//             background-color: var(--secondary-body-color);
+//             font-size: toRem(8);
+//             color: var(--absolute-white);
+//             font-size: toRem(18);
+//             @extend %flex-center;
+//         }
+//         &.current,
+//         &.done {
+//             color: var(--bs-primary);
+//             span {
+//                 background-color: var(--bs-primary);
+//             }
+//         }
+//         &.done {
+//             &::after {
+//                 background-color: var(--bs-primary);
+//             }
+//         }
+//     }
+// }
+
+// .cart-item-count {
+//     --size: 1.25rem;
+//     font-size: toRem(10);
+//     inset-inline-end: toRem(-7);
+//     inset-block-start: toRem(-7);
+//     color: var(--title-color);
+//     border-color: var(--bs-border-color);
+//     &:hover {
+//         background-color: var(--bs-white);
+//     }
+// }

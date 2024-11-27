@@ -1,0 +1,44 @@
+/* ************************
+   02.7: Pagination
+   ********************* */
+
+   // .pagination {
+   //    justify-content: center;
+   //    gap: toRem(10);
+   //    flex-wrap: wrap;
+   //    li {
+   //       &:first-child,
+   //       &:last-child {
+   //          > a,
+   //          > span {
+   //             border: .5px solid var(--bs-border-color);
+   //             display: grid;
+   //             place-items: center;
+   //             font-size: toRem(20);
+   //          }
+   //       }
+   //       > a,
+   //       > span {
+   //          inline-size: toRem(32);
+   //          block-size: toRem(32);
+   //          line-height: 1;
+   //          position: relative;
+   //          display: inline-flex;
+   //          justify-content: center;
+   //          align-items: center;
+   //          font-size: toRem(12);
+   //          background-color: var(--bs-white);
+   //          // @extend %rounded-4;
+   //          // @extend %box-shadow;
+   //          box-shadow: var(--box-shadow);
+   //          border-radius: toRem(4);
+   //       }
+   //       &.active {
+   //          >a,
+   //          >span {
+   //             background-color: var(--bs-primary);
+   //             color: var(--absolute-white);
+   //          }
+   //       }
+   //    }
+   // }

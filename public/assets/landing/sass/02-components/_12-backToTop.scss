@@ -1,0 +1,109 @@
+/* ************************
+   02.12: Back to Top
+   ********************* */
+// .back-to-top {
+//     --size: 2.187rem;
+//     inline-size: var(--size);
+//     block-size: var(--size);
+//     @extend %rounded;
+//     @extend %grid-center;
+//     position: fixed;
+//     opacity: 0;
+//     visibility: hidden;
+//     box-shadow: 0 toRem(4) toRem(14) rgba(var(--bs-primary-rgb), 0.1);
+//     font-size: toRem(16);
+//     inset-block-end: 10%;
+//     inset-inline-end: 4%;
+//     transform: scale(0);
+//     color: var(--absolute-white) !important;
+//     background-color: var(--bs-primary);
+//     &.show {
+//         transform: scale(1);
+//         opacity: 1;
+//         visibility: visible;
+//         z-index: 999;
+//     }
+//     &:hover {
+//         opacity: 0.6;
+//     }
+// }
+
+.blok:nth-of-type(odd) {
+    background-color:white;
+}
+    
+.blok:nth-of-type(even) {
+    background-color:black;
+}
+
+@-webkit-keyframes border-transform{
+    0%,100% { border-radius: 63% 37% 54% 46% / 55% 48% 52% 45%; } 
+	14% { border-radius: 40% 60% 54% 46% / 49% 60% 40% 51%; } 
+	28% { border-radius: 54% 46% 38% 62% / 49% 70% 30% 51%; } 
+	42% { border-radius: 61% 39% 55% 45% / 61% 38% 62% 39%; } 
+	56% { border-radius: 61% 39% 67% 33% / 70% 50% 50% 30%; } 
+	70% { border-radius: 50% 50% 34% 66% / 56% 68% 32% 44%; } 
+	84% { border-radius: 46% 54% 50% 50% / 35% 61% 39% 65%; } 
+}
+// .paginacontainer {
+//   height: 3000px;
+// }
+
+/* #Progress
+================================================== */
+
+.progress-wrap {
+	position: fixed;
+    inset-block-end: 10%;
+    inset-inline-end: 4%;
+    --size: 2.187rem;
+    inline-size: var(--size);
+    block-size: var(--size);
+	cursor: pointer;
+	display: block;
+	@extend %rounded;
+    @extend %grid-center;
+	box-shadow: inset  0 0 0 2px rgba(var(--title-color-rgb),0.1);
+	z-index: 10000;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-150px);
+	-webkit-transition: all 200ms linear;
+    transition: all 200ms linear;
+}
+.progress-wrap.active-progress {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+
+.progress-wrap::before {
+	position: absolute;
+	font-family: bootstrap-icons;
+	content: '\F148';
+	text-align: center;
+	line-height: var(--size);
+	font-size: 1rem;
+	background: var(--bs-primary);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	inset-inline-start: 0;
+	inset-block-start: 0;
+    inline-size: var(--size);
+    block-size: var(--size);
+	cursor: pointer;
+	display: block;
+	z-index: 2;
+	-webkit-transition: all 200ms linear;
+    transition: all 200ms linear;
+}
+.progress-wrap svg path { 
+	fill: none; 
+}
+.progress-wrap svg.progress-circle path {
+	stroke: rgba(var(--bs-primary-rgb), 1);
+	stroke-width: 4;
+	box-sizing:border-box;
+	-webkit-transition: all 200ms linear;
+    transition: all 200ms linear;
+}

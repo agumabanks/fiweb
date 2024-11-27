@@ -1,0 +1,12 @@
+[29-Jun-2024 11:17:30 America/Boise] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home1/alfahote/public_html/finmicro-sanaa-co/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home1/alfahote/public_html/finmicro-sanaa-co/config/database.php on line 18
+[15-Aug-2024 11:00:59 America/Boise] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home1/alfahote/public_html/website_0ae852b8/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home1/alfahote/public_html/website_0ae852b8/config/database.php on line 18
+[04-Oct-2024 10:47:07 America/Boise] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home1/alfahote/public_html/website_3cbf2c0d/config/database.php:18
+Stack trace:
+#0 {main}
+  thrown in /home1/alfahote/public_html/website_3cbf2c0d/config/database.php on line 18

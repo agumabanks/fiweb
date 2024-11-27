@@ -1,0 +1,66 @@
+/* ************************
+   03.5: Theme Switcher
+   ********************* */
+
+   // .settings-sidebar {
+   //    position: fixed;
+   //    inset-inline-end: toRem(0);
+   //    inset-block-start: 40%;
+   //    z-index: 1029;
+   //    display: flex;
+   //    flex-direction: column;
+   //    gap: toRem(8);
+   //    transform: translateX(100%);
+
+   //    .theme-bar,
+   //    .dir-bar {
+   //       background-color: var(--bs-white);
+   //       padding: toRem(8);
+   //       border-start-start-radius: toRem(10);
+   //       border-end-start-radius: toRem(10);
+   //       box-shadow: var(--box-shadow);
+   //       display: flex;
+   //       align-items: center;
+   //       gap: toRem(16);
+   //       cursor: pointer;
+   //       transition: transform 300ms ease-in-out;
+   //       transform: translateX(-26%);
+   //       inline-size: toRem(210);
+   //       [dir="rtl"] & {
+   //          transform: translateX(-174%);
+   //       }
+
+   //       button {
+   //          background-color: transparent;
+   //          border: 0;
+   //          display: flex;
+   //          align-items: center;
+   //          gap: toRem(14);
+   //          color: #B9B9B9;
+   //          border-radius: toRem(10);
+   //          padding: toRem(10);
+   //          font-weight: 800;
+   //          font-size: toRem(14);
+   //          order: 1;
+   //          .svg {
+   //             flex-shrink: 0;
+   //          }
+   //          &.active {
+   //             background-color: rgba(var(--bs-primary-rgb), .2);
+   //             color: var(--bs-primary);
+   //             inline-size: toRem(40);
+   //             overflow: hidden;
+   //             @extend %trans3;
+   //             order: 0;
+   //          }
+   //       }
+   //       &:hover {
+   //          transform: translateX(-100%);
+   //          button {
+   //             &.active {
+   //                inline-size: toRem(90);
+   //             }
+   //          }
+   //       }
+   //    }
+   // }

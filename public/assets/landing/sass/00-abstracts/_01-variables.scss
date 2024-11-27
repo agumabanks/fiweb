@@ -1,0 +1,109 @@
+:root {
+    // Colors
+    --bs-primary: #5BE0A0;
+    --bs-primary-rgb: 91, 224, 160;
+    --bs-secondary: #003E47;
+    --bs-secondary-rgb: 0, 62, 71;
+    --primary-light: #F6F9FD;
+    --title-color: #174061;
+    --title-color-rgb: 23, 64, 97;
+    
+    --bs-body-color: #174061;
+    --secondary-body-color: #D9D9D9;
+    
+    --bs-light: #F6F6F6;
+    --bs-light-rgb: 246,246,246;
+    --absolute-dark: #262D34;
+    --absolute-dark-rgb: 38, 45, 52;
+    --absolute-white: #fff;
+    --absolute-white-rgb: 255, 255, 255;
+
+    // --shadow-color: rgba(0, 0, 0, 0.05);
+    --bs-body-bg-rgb: 253, 253, 253;
+    --bs-body-bg: #FDFDFD;
+    --bs-border-color: #E3ECF6;
+    --bs-border-rgb: 227, 236, 246;
+    // --bs-danger-rgb: 255, 103, 103;
+    // --bs-danger: #FF6767;
+    --bs-success-rgb: 0, 169, 66;
+    --bs-success: #00A942;
+    // --bs-info-rgb: 0, 165, 236;
+    // --bs-info: #00A5EC;
+    // --bs-warning-rgb: 244, 161, 100;
+    // --bs-warning: #F4A164;
+    --bs-dark-rgb: var(--title-color-rgb);
+    --bs-dark: var(--title-color);
+    --footer-bg: #0B3668;
+    --feature-bg-color: #F2F4F8;
+    // --bg-badge: #ddd;
+
+    //Shadow
+    --box-shadow: 0 0.125rem .6rem rgba(0, 0, 0, .1);
+    --product-shadow: 0 0 .5rem rgba(0, 0, 0, 0.05);
+  
+    // Font Family
+    --bs-body-font-family: 'Rubik', sans-serif;
+    --title-font: 'Rubik', sans-serif;
+
+    --bs-body-font-weight: 400;
+  
+    // Font Weight
+    --thin: 100;
+    --extra-light: 200;
+    --light: 300;
+    --regular: 400;
+    --medium: 500;
+    --bold: 700;
+    --semi-bold: 600;
+    --extra-bold: 800;
+    --black-bold: 900;
+
+    // Font Size
+    //13
+    --bs-body-font-size: clamp(0.75rem, 0.7rem + 0.25vw, 1rem);
+    --small-font-size: clamp(0.625rem, 0.6rem + 0.125vw, 0.75rem);
+    //28
+    --h1_fs: clamp(2.25rem, 1.825rem + 2.125vw, 4.375rem);
+    //24
+    --h2_fs: clamp(1.375rem, 1.275rem + 0.5vw, 1.875rem);
+    //20
+    --h3_fs: clamp(1.125rem, 1.1rem + 0.125vw, 1.25rem);
+    //18
+    --h4_fs: clamp(1rem, 0.975rem + 0.125vw, 1.125rem);
+    //16
+    --h5_fs: clamp(0.875rem, 0.85rem + 0.125vw, 1rem);
+    //14
+    --h6_fs: clamp(0.75rem, 0.725rem + 0.125vw, 0.875rem);
+  
+    // Line Height
+    --bs-body-line-height: 1.6;
+    --title-line-height: 1.3;
+}
+
+// [theme="dark"] {
+//     // Colors
+//     --bs-body-color: #CCD0D3;
+//     --bs-white: #282828;
+//     --primary-light: #222;
+//     --bs-white-rgb: 35, 35, 37;
+//     --input-bg: #3a3a3a;
+//     --title-color: rgba(255, 255, 255, 0.8);
+//     --absolute-white: rgba(255, 255, 255, .8);
+//     --title-color-rgb: 255, 255, 255;
+//     --bs-dark-rgb: var(--title-color-rgb);
+//     --bs-dark: var(--title-color);
+//     --bs-light: #222;
+//     --bs-light-rgb: 34, 34, 34;
+    
+//     --bs-body-bg-rgb: 24, 24, 26;
+//     --bs-body-bg: #18181A;
+//     --bs-border-rgb: 73, 73, 73;
+//     --bs-border-color: #494949;
+
+//     // --bg-badge: #464646;
+
+//     --feature-bg-color: var(--bs-white);
+
+//     //Shadow
+//     --box-shadow: 0 2px 10px rgba(var(--bs-primary-rgb), .15);
+// }

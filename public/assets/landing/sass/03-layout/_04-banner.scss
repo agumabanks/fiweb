@@ -1,0 +1,57 @@
+/* ************************
+   03.4: Banner
+   ********************* */
+
+.banner {
+   padding-block-start: 12rem;
+   @include tab {
+      padding-block-start: 6rem;
+   }
+   
+
+   .btn-primary {
+      background-color: rgba(var(--absolute-white-rgb), .1);
+      border-color: transparent;
+      &:hover {
+         background-color: var(--bs-primary);
+      }
+   }
+   &-title {
+      animation: fadeInLeft 1s ease-in-out 1s 1 both;
+   }
+   &-content {
+      animation: fadeInRight 1s ease-in-out 1s 1 both;
+   }
+   &-middle-content {
+      animation: fadeIn 1s ease-in-out 1.3s 1 both;
+   }
+}
+
+.banner-mobile-frame {
+   margin-block-start: 3rem;
+   margin-block-end: -12rem;
+   animation: fadeInUp 1s ease-in-out 1.8s 1 both;
+   @include mobileLg {
+      margin-block-start: 5rem;
+      margin-block-end: -5rem;
+   }
+   > div {
+      position: relative;
+      z-index: 1;
+   }
+
+   .ss-img {
+      position: absolute;
+      z-index: -1;
+      inset-inline-start: 6%;
+      inset-block-start: 5%;
+      inline-size: 90%;
+   }
+
+   .banner-middle-frame {
+      margin-block-start: -8rem;
+      @include mobileLg {
+         margin-block-start: -3rem;
+      }
+   }
+}

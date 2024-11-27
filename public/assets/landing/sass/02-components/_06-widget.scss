@@ -1,0 +1,52 @@
+/* ************************
+   02.6: Widget
+   ********************* */
+
+.widget {
+  &:not(:last-child) {
+    margin-block-end: toRem(40);
+  }
+  &__title {
+    margin-block-end: toRem(20);
+  }
+  &__about {
+   max-inline-size: toRem(320);
+  }
+  &__socials {
+   display: flex;
+   gap: 1rem;
+   --size: 2.5rem;
+   a {
+      width: var(--size);
+      height: var(--size);
+      border-radius: var(--size);
+      border: 1px solid var(--bs-white);
+      padding: toRem(8);
+      display: grid;
+      place-items: center;
+      line-height: 1;
+      &:hover {
+         background-color: var(--bs-white);
+         color: var(--bs-primary);
+         i {
+            color: var(--bs-primary);
+         }
+      }
+   }
+  }
+//   .popular-tags,
+//   .popular-categories {
+//     a {
+//       --opacity: 0.2;
+//       background-color: rgba(var(--bs-primary-rgb), var(--opacity));
+//       @extend %grid-center;
+//       padding: toRem(5) toRem(10);
+//       @extend %rounded-50;
+//       font-size: toRem(12);
+//       line-height: 1;
+//     }
+//   }
+  ul {
+    @extend %list-unstyled;
+  }
+}

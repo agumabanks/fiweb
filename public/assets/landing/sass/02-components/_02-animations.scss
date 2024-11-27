@@ -1,0 +1,161 @@
+/* ************************
+   02.2: Animations
+   ********************* */
+    .animated {
+        animation-duration: 200ms;
+        animation-fill-mode: backwards;
+    }
+    
+    @-webkit-keyframes fadeIn {
+        0% {
+            opacity: 0;
+        }
+        
+        100% {
+            opacity: 1;
+        }    
+    }
+        
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+        }
+    
+        100%{
+            opacity: 1;
+        }
+    }
+      
+    .fadeIn {
+        -webkit-animation-name: fadeIn;
+        animation-name: fadeIn;
+    }
+
+    @keyframes fadeInDown {
+        0% {
+            opacity: 0;
+            -webkit-transform: translate3d(0, toRem(-40), 0);
+            transform: translate3d(0, toRem(-40), 0);
+        }
+        to {
+            opacity: 1;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+    }
+    .fadeInDown {
+        -webkit-animation-name: fadeInDown;
+        animation-name: fadeInDown;
+    }
+
+    @keyframes fadeInUp {
+        0% {
+            opacity: 0;
+            -webkit-transform: translate3d(0, toRem(10), 0);
+            transform: translate3d(0, toRem(10), 0);
+        }
+        to {
+            opacity: 1;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+    }
+    .fadeInUp {
+        -webkit-animation-name: fadeInUp;
+        animation-name: fadeInUp;
+    }
+
+    @keyframes fadeInLeft {
+        from {
+            opacity:0;
+            -webkit-transform: translatex(-100px);
+            -moz-transform: translatex(-100px);
+            -o-transform: translatex(-100px);
+            transform: translatex(-100px);
+        }
+        to {
+            opacity:1;
+            -webkit-transform: translatex(0);
+            -moz-transform: translatex(0);
+            -o-transform: translatex(0);
+            transform: translatex(0);
+        }
+    }
+    .fadeInLeft {
+        -webkit-animation-name: fadeInLeft;
+        animation-name: fadeInLeft;
+    }
+
+    @keyframes fadeInRight {
+        from {
+            opacity:0;
+            -webkit-transform: translatex(100px);
+            -moz-transform: translatex(100px);
+            -o-transform: translatex(100px);
+            transform: translatex(100px);
+        }
+        to {
+            opacity:1;
+            -webkit-transform: translatex(0);
+            -moz-transform: translatex(0);
+            -o-transform: translatex(0);
+            transform: translatex(0);
+        }
+    }
+    .fadeInRight {
+        -webkit-animation-name: fadeInRight;
+        animation-name: fadeInRight;
+    }
+
+
+
+    @keyframes move-forever {
+        0% {
+        transform: translate3d(-90px,0,0);
+        }
+        100% { 
+        transform: translate3d(85px,0,0);
+        }
+    }
+    
+    // @keyframes matrix {
+    //     0% {
+    //         transform: matrix(1, 0, 0, 1, 0, 0);
+    //     }
+    //     25% {
+    //         transform: matrix(1, 0, 0, 1, 15, 20);
+    //     }
+    //     50% {
+    //         transform: matrix(1, 0, 0, 1, -5, 25);
+    //     }
+    //     75% {
+    //         transform: matrix(1, 0, 0, 1, -15, 15);
+    //     }
+    //     100% {
+    //         transform: matrix(1, 0, 0, 1, 0, 0);
+    //     }
+    // }
+
+    // @keyframes ripple {
+    //     from {
+    //         width: 0.1%;
+    //         height: 0.1%;
+    //         opacity: 1;
+    //     }
+    //     to {
+    //         width: 100%;
+    //         height: 100%;
+    //         opacity: 0;
+    //     }
+    // }
+
+    // @keyframes growProgressBar {
+    //     0%,
+    //     33% {
+    //         --pgPercentage: 0;
+    //     }
+
+    //     100% {
+    //         --pgPercentage: var(--value);
+    //     }
+    // }

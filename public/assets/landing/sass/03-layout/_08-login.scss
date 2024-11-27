@@ -1,0 +1,134 @@
+/* ************************
+   03.8: Login
+   ********************* */
+
+// .wizard {
+//    .steps {
+//       margin-block-end: toRem(30);
+//       ul {
+//          @extend %list-unstyled;
+//          display: flex;
+//          @include mobileMd {
+//             flex-direction: column;
+//          }
+//          li {
+//             &:not(:last-child) {
+//                position: relative;
+//                padding-inline-end: toRem(55);
+//                @include mobileMd {
+//                   padding-inline-end: toRem(0);
+//                   padding-block-end: toRem(11);
+//                }
+//                &::after {
+//                   position: absolute;
+//                   content: "";
+//                   background-color: var(--bs-primary);
+//                   block-size: toRem(1);
+//                   transform: translateY(-50%);
+//                   inset-block-start: 50%;
+//                   inset-inline-end: toRem(10);
+//                   inline-size: toRem(35);
+//                   @include mobileMd {
+//                      inline-size: toRem(1);
+//                      block-size: toRem(10);
+//                      transform: none;
+//                      inset-block-start: toRem(30);
+//                      inset-inline-start: toRem(13);
+//                   }
+//                }
+//             }
+//             &.done {
+//                .number {
+//                   background-color: var(--bs-primary);
+//                   color: var(--absolute-white);
+//                }
+//             }
+//          }
+//       }
+//       .current-info {
+//          display: none;
+//       }
+//       .number {
+//          inline-size: toRem(26);
+//          min-inline-size: toRem(26);
+//          block-size: toRem(26);
+//          @extend %grid-center;
+//          background-color: var(--bs-light);
+//          @extend %rounded;
+//       }
+//       a {
+//          display: flex;
+//          align-items: center;
+//          font-weight: var(--semi-bold);
+//          gap: toRem(10);
+//       }
+//    }
+//    .title {
+//       display: none;
+//    }
+//    .content {
+//       .error {
+//          color: var(--bs-danger);
+//       }
+//    }
+//    .actions {
+//       margin-block-start: toRem(30);
+//       ul {
+//          @extend %list-unstyled;
+//          display: flex;
+//          gap: toRem(16);
+//          justify-content: flex-end;
+//       }
+//       a {
+//          background-color: var(--bs-primary);
+//          border-radius: toRem(4);
+//          padding: toRem(8) toRem(24);
+//          line-height: 1;
+//          color: var(--absolute-white);
+//       }
+//    }
+// }
+
+
+// /* upload file */
+// .upload-file {
+//   position: relative;
+//   cursor: pointer;
+//   max-inline-size: 100%;
+//   &__input {
+//     position: absolute;
+//     inset-inline-start: 0;
+//     inset-block-start: 0;
+//     inline-size: 100%;
+//     block-size: 100%;
+//     opacity: 0;
+//     cursor: pointer;
+//   }
+
+//   &__img {
+//     --size: 8.75rem;
+//     block-size: var(--size);
+//     inline-size: var(--size);
+//     min-inline-size: var(--size);
+//     max-inline-size: 100%;
+
+//     img {
+//       @extend %rounded-10;
+//       background-color: var(--bs-white);
+//     }
+//     &.style--two {
+//       inline-size: calc(var(--size) * 2);
+//     }
+//   }
+
+//   .temp-img-box {
+//       border: 1px dashed var(--secondary-body-color);
+//       [theme="dark"] & {
+//          border-color: var(--bs-border-color);
+//       }
+//       border-radius: toRem(10);
+//       inline-size: 100%;
+//       block-size: 100%;
+//       @extend %grid-center;
+//   }
+// }

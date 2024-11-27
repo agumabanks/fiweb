@@ -1,0 +1,41 @@
+/* ************************
+   02.3: Social List
+   ********************* */
+
+// .socials {
+//   a {
+//     width: toRem(45);
+//     height: toRem(45);
+//     @extend %rounded;
+//     background-color: rgba(#fff, 0.1);
+//     display: inline-flex;
+//     align-items: center;
+//     justify-content: center;
+//     padding: toRem(5);
+//     position: relative;
+//     z-index: 1;
+//     &:not(:last-child) {
+//       margin-inline-end: toRem(5);
+//     }
+//     &:after {
+//       width: 100%;
+//       height: 100%;
+//       left: 0;
+//       top: 0;
+//       position: absolute;
+//       z-index: -1;
+//       @extend %gradient-reverse;
+//       content: "";
+//       border-radius: 50%;
+//       transform: scale(0.7);
+//       opacity: 0;
+//       @extend %trans3;
+//     }
+//     &:hover {
+//       &:after {
+//         transform: scale(1);
+//         opacity: 1;
+//       }
+//     }
+//   }
+// }

@@ -1,0 +1,161 @@
+/* ************************
+   02.5: Buttons
+   ********************* */
+.btn {
+  &:hover,
+  &:focus {
+    box-shadow: none !important;
+    svg {
+      path {
+        fill: var(--absolute-white);
+      }
+    }
+  }
+  @extend %flex-center;
+  column-gap: toRem(6);
+  font-weight: var(--semi-bold);
+  text-transform: capitalize;
+  white-space: nowrap;
+
+  // --bs-btn-line-height: 1;
+  // --bs-btn-padding-x: .875rem;
+  // --bs-btn-padding-y: .25rem;
+
+  --bs-btn-font-size: .875rem;
+  --bs-btn-border-radius: .5rem;
+  --bs-btn-padding-x: 1.5rem;
+  --bs-btn-padding-y: 0.5rem;
+  &-primary {
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: #53f3a6;
+    --bs-btn-hover-border-color: #53f3a6;
+    --bs-btn-active-bg: #53f3a6;
+    --bs-btn-active-border-color: #53f3a6;
+    --bs-btn-disabled-bg: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+  }
+  &-warning {
+    --bs-btn-color: var(--title-color);
+    --bs-btn-bg: #E0EC53;
+    --bs-btn-border-color: #E0EC53;
+    --bs-btn-hover-bg: #E0EC73;
+    --bs-btn-hover-border-color: #E0EC73;
+    --bs-btn-focus-shadow-rgb: 217,164,6;
+    --bs-btn-active-color: var(--title-color);
+    --bs-btn-hover-color: var(--title-color);
+    --bs-btn-active-bg: #E0EC73;
+    --bs-btn-active-border-color: #E0EC73;
+    // --bs-btn-disabled-color: var(--bs-white);
+    // --bs-btn-disabled-bg: #FE961C;
+    // --bs-btn-disabled-border-color: #FE961C;
+  }
+  &-secondary {
+    --bs-btn-color: var(--bs-white);
+    --bs-btn-bg: var(--bs-secondary);
+    --bs-btn-border-color: var(--bs-secondary);
+    --bs-btn-disabled-bg: #d3d4d5;
+    --bs-btn-disabled-border-color: #d3d4d5;
+
+    --bs-btn-hover-bg: #024e59;
+    --bs-btn-hover-border-color: #024e59;
+    --bs-btn-hover-color: var(--bs-btn-color);
+    [theme="dark"] & {
+      --bs-btn-color: #fff;
+      --bs-btn-bg: #676f75;
+      --bs-btn-border-color: #676f75;
+      --bs-btn-disabled-bg: #676f75;
+      --bs-btn-disabled-border-color: #676f75;
+    }
+  }
+  &-outline-primary {
+    --bs-btn-color: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-active-bg: var(--bs-primary);
+    --bs-btn-active-border-color: var(--bs-primary);
+    --bs-btn-disabled-color: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+  }
+  &-block {
+    inline-size: 100%;
+  }
+
+  &-link {
+    // color: var(--bs-primary);
+    text-decoration: none;
+    font-weight: var(--semi-bold);
+    display: flex;
+    align-items: center;
+    gap: toRem(6);
+    @extend %trans3;
+    border: none !important;
+    background-color: transparent;
+    padding: toRem(0);
+    &:hover {
+      color: var(--bs-primary);
+      gap: toRem(12)
+    }
+    i {
+      [dir=rtl] & {
+        transform: rotate(180deg);
+      }
+    }
+  }
+  &-reset {
+    border: 0;
+    background-color: transparent;
+    padding: 0;
+  }
+}
+
+
+// .count {
+//   position: absolute;
+//   inset-inline-end: toRem(-6);
+//   inset-block-start: toRem(-6);
+//   background-color: var(--bs-primary);
+//   color: var(--absolute-white);
+//   font-size: toRem(9);
+//   inline-size: toRem(16);
+//   block-size: toRem(16);
+//   line-height: toRem(12);
+//   display: grid;
+//   place-items: center;
+//   @extend %rounded;
+//   border: 1px solid var(--bs-white);
+// }
+
+// .eye-btn,
+// .btn-circle {
+//   --size: 1.75rem;
+//   inline-size: var(--size);
+//   min-inline-size: var(--size);
+//   block-size: var(--size);
+//   @extend %rounded;
+//   @extend %grid-center;
+//   box-shadow: var(--box-shadow);
+//   background-color: var(--bs-white);
+//   z-index: 2;
+//   line-height: 1;
+//   @extend %trans3;
+//   color: var(--bs-primary);
+//   border: toRem(1) solid transparent;
+//   cursor: pointer;
+//   &:hover {
+//     background-color: var(--bs-primary);
+//     color: var(--absolute-white);
+//   }
+// }
+
+// .btn-action {
+//   inline-size: toRem(26);
+//   min-inline-size: toRem(26);
+//   block-size: toRem(26);
+//   border-radius: toRem(5);
+//   padding: toRem(5);
+//   display: grid;
+//   place-items: center;
+//   line-height: 1;
+// }

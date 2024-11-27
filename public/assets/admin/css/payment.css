@@ -1,0 +1,23 @@
+#loading {
+    display: none;
+}
+
+.loader-css {
+    position: fixed;
+    z-index: 9999;
+    left: 40%;
+    top: 37% ;
+    width: 100%
+}
+
+.d-none {
+    display: none;
+}
+
+.h-70 {
+    height: 70px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

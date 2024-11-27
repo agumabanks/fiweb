@@ -1,0 +1,32 @@
+/* ************************
+   03.7: Filter Aside
+   ********************* */
+
+    // .filter {
+    //     &-aside {
+    //         @extend .settings-sidebar;
+    //         z-index: 1033;
+    //         padding-block-start: 0;
+    //         inline-size: toRem(400);
+    //         inset-inline-end: toRem(-400);
+    //         @extend %trans3;
+    //         @include mobileSm {
+    //             inline-size: 100%;
+    //             inset-inline-end: -100%;
+    //         }
+
+    //         &__header {
+    //             padding: toRem(20) toRem(20);
+    //             margin-block-end: toRem(10);
+    //         }
+    //         &__title {
+    //             text-transform: uppercase;
+    //             color: var(--bs-primary)
+    //         }
+    //         &__body {
+    //             padding: toRem(20);
+    //             block-size: 70vh;
+    //             overflow-y: auto;
+    //         }
+    //     }
+    // }

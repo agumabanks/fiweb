@@ -1,0 +1,102 @@
+/* ************************
+   01.2: Padding/Margin
+   ********************* */
+// Paddings
+$p-list: 100;
+$tab: 40;
+
+// Padding Top
+@each $padding in $p-list {
+  .pt-#{$padding} {
+    padding-block-start: toRem($padding);
+    @include tab {
+      @if $padding > $tab {
+        padding-block-start: toRem($padding - $tab);
+      }
+    }
+  }
+}
+
+// Padding Bottom
+@each $padding in $p-list {
+  .pb-#{$padding} {
+    padding-block-end: toRem($padding);
+    @include tab {
+      @if $padding > $tab {
+        padding-block-end: toRem($padding - $tab);
+      }
+    }
+  }
+}
+
+// $m-list: 30;
+
+// // Margin Top
+// @each $margin in $m-list {
+//   .mt-#{$margin} {
+//     margin-block-start: toRem($margin);
+//   }
+// }
+// // Margin Bottom
+// @each $margin in $m-list {
+//   .mb-#{$margin} {
+//     margin-block-end: toRem($margin);
+//   }
+// }
+
+//Gap
+// $gap-list: (1:4, 2:8, 3:16, 4:24, 5:48);
+// @each $count, $gap in $gap-list {
+//   .row-gap-#{$count} {
+//     row-gap: toRem($gap) !important;
+//   }
+//   .column-gap-#{$count} {
+//     column-gap: toRem($gap) !important;
+//   }
+// }
+
+// $gap-list2: 10, 30;
+// @each $gap in $gap-list2 {
+//   .gap-#{$gap} {
+//     gap: toRem($gap) !important;
+//   }
+// }
+
+
+//Negative Margin
+$nm-list: (
+  1:4,
+  2:8,
+  3:16,
+  4:24,
+  5:48,
+);
+
+@each $count,
+$nm in $nm-list {
+  .mt-n#{$count} {
+    margin-block-start: toRem(-$nm) !important;
+  }
+
+  .mb-n#{$count} {
+    margin-block-end: toRem(-$nm) !important;
+  }
+
+  .ms-n#{$count} {
+    margin-inline-start: toRem(-$nm) !important;
+  }
+
+  .me-n#{$count} {
+    margin-inline-end: toRem(-$nm) !important;
+  }
+}
+
+
+
+// Custom Classes
+// .p-30 {
+//   padding: toRem(30) !important;
+//   @include mobileMd {
+//     padding: toRem(16) !important;
+//   }
+// }

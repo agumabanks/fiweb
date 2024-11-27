@@ -1,0 +1,14 @@
+.grid-container {
+  --spacing: 1rem;
+  --column-count: 4;
+  --min-width: 12.5rem;
+  --max-width: 1fr;
+  
+  --gap-count: calc(var(--column-count) - 1);
+  --total-gap-width: calc(var(--gap-count) * var(--spacing));
+  --grid-item--max-width: calc((100% - var(--total-gap-width)) / var(--column-count));
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(var(--min-width), var(--grid-item--max-width)), var(--max-width)));
+  grid-gap: var(--spacing);
+}

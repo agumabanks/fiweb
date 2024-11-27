@@ -1,0 +1,123 @@
+/* ************************
+   02.13: Order Tracking Timeline
+   ********************* */
+   
+// #timeline {
+//   --items: 5;
+//   position: relative;
+//   .bar {
+//     background-color: var(--secondary-body-color);
+//     block-size: toRem(2);
+//     inline-size: 80%;
+//     position: absolute;
+//     inset-block-start: toRem(15);
+//     inset-inline-start: 10%;
+//     [theme="dark"] & {
+//       background-color: #505050;
+//     }
+//     @include mobileLg {
+//       inset-inline-start: toRem(14);
+//       inset-block-start: toRem(20);
+//       block-size: 83%;
+//       inline-size: toRem(2);
+//     }
+//     &.progress {
+//       &:after {
+//         content: "";
+//         background-color: var(--bs-primary);
+//         block-size: 100%;
+//         position: absolute;
+//       }
+//       &.one {
+//         &:after{
+//           inline-size: calc(1 * (100% / var(--items)));
+//         }
+//       }
+//       &.two {
+//         &:after{
+//           inline-size: calc(2 * (100% / var(--items)));
+//         }
+//       }
+//       &.three {
+//         &:after{
+//           inline-size: calc(3 * (100% / var(--items)));
+//         }
+//       }
+//       &.four {
+//         &:after{
+//           inline-size: calc(4 * (100% / var(--items)));
+//         }
+//       }
+//       &.five {
+//         &:after{
+//           inline-size: calc(5 * (100% / var(--items)));
+//         }
+//       }
+//     }
+//   }
+
+//   .state {
+//     ul {
+//       list-style: none;
+//       position: relative;
+//       margin-block-end: 0;
+//       padding-inline-start: 0;
+//       display: flex;
+//       padding-left: 0;
+//       @include mobileLg {
+//         flex-direction: column;
+//       }
+//       li {
+//         text-align: center;
+//         inline-size: calc(100% / var(--items));
+//         @include mobileLg {
+//           inline-size: auto;
+//           text-align: start;
+//           position: relative;
+//           display: flex;
+//           align-items: center;
+//           gap: 1rem;
+//           &:not(:last-child) {
+//             margin-block-end: toRem(30);
+//           }
+//         }
+//         .badge {
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           margin: toRem(0) auto toRem(20);
+//           inline-size: toRem(30);
+//           block-size: toRem(30);
+//           @extend %rounded;
+//           color: var(--title-color);
+//           border: toRem(3) solid var(--bs-white);
+//           background-color: var(--secondary-body-color);
+//           [theme="dark"] & {
+//             background-color: #505050;
+//           }
+//           @include mobileLg {
+//             margin: 0;
+//             position: absolute;
+//             inset-block-start: toRem(-3);
+//           }
+//           i {
+//             color: var(--absolute-white);
+//           }
+//           &.active {
+//             border-color: var(--bs-white);
+//             background-color: var(--bs-primary);
+//             color: var(--bs-white);
+//           }
+//         }
+//         .state-text {
+//           color: var(--title-color);
+//           &-wrap {
+//             @include mobileLg {
+//               padding-inline-start: toRem(40);
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+// }

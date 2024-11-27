@@ -1,0 +1,157 @@
+/* ************************
+   03.1: Header
+   ********************* */
+
+   .header {
+      // position: relative;
+      // &-top {
+      //    * {
+      //       color: var(--absolute-white);
+      //       &:hover {
+      //          color: var(--absolute-white);
+      //       }
+      //    }
+      //    .dropdown-menu * {
+      //       color: var(--title-color);
+      //       &:hover {
+      //          color: var(--bs-primary);
+      //       }
+      //    }
+      // }
+      // &-middle {
+      //    background-color: #F8F8FA;
+      //    [theme="dark"] & {
+      //       background-color: #242424;
+      //    }
+      // }
+      // &-main {
+      //    background-color: var(--bs-white);
+      // }
+      // .list-separator {
+      //    > li {
+      //       &::after {
+      //          display: none;
+      //       }
+      //    }
+      // }
+      // background-color: var(--bs-white);
+      .sticky-bg-area {
+         padding-block: .5rem;
+      }
+      &.sticky {
+         // position: fixed;
+         // inset-inline-start: 0;
+         // inset-block-start: 0;
+         // z-index: 1020;
+         inline-size: 100%;
+         // box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+         // background-color: var(--bs-white);
+         .sticky-bg-area {
+            position: relative;
+            inset-block-start: .5rem;
+            z-index: 1;
+            @include tab {
+               padding-inline: 1rem;
+            }
+            &::after {  
+               border-radius: 10px;
+               background: rgba(0, 62, 71, 0.80);
+               box-shadow: 5px 20px 60px -5px rgba(29, 142, 91, 0.10);
+               backdrop-filter: blur(20px);
+               inline-size: calc(100% + 2rem);
+               block-size: 100%;
+               inset-inline-start: -1rem;
+               position: relative;
+               z-index: -1;
+               content: "";
+               inset-block-start: 0;
+               position: absolute;
+               @include tab {
+                  inline-size: 100%;
+                  inset-inline-start: 0;
+               }
+            }
+         }
+      }
+   }
+
+   .main-menu {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      > li {
+         text-transform: capitalize;
+         a {
+            padding: toRem(10);
+            color: rgba(var(--bs-white-rgb), .8);
+            &.active {
+               color: rgba(var(--bs-white-rgb), 1);
+            }
+         }
+      }
+      a {
+         font-size: toRem(14);
+      }
+      .has-sub-item {
+         position: relative;
+         padding-inline-end: toRem(13);
+         &::after {
+            font-family: bootstrap-icons !important;
+            content: "\F282";
+            font-size: toRem(10);
+            position: absolute;
+            inset-block-start: 50%;
+            transform: translateY(-50%);
+            inset-inline-end: toRem(9);
+         }
+         .has-sub-item  {
+            &::after {
+               inset-inline-end: toRem(16);
+            }
+         }
+      }
+
+      .sub-menu {
+         --submenu-opacity: 0;
+         inset-block-start: calc(100% + .625rem);
+         position: absolute;
+         text-transform: capitalize;
+         opacity: var(--submenu-opacity);
+         @extend %trans3;
+         visibility: hidden;
+         transform: translateY(.3rem);
+         .sub-menu {
+            inset-block-start: toRem(0);
+            inset-inline-start: 100%;
+         }
+      }
+      li {
+         &:hover {
+            > .sub-menu {
+               transform: translateY(0);
+               visibility: visible;
+               --submenu-opacity: 1;
+            }
+         }
+      }
+   }
+
+   .sub-menu {
+      --bs-dropdown-min-width: 13.75rem;
+      @extend %list-unstyled;
+      // @extend .dropdown-menu;
+      min-inline-size: var(--bs-dropdown-min-width);
+      font-size: var(--bs-dropdown-font-size);
+      color: var(--bs-dropdown-color);
+      background-color: var(--bs-dropdown-bg);
+      background-clip: padding-box;
+      @extend %box-shadow;
+      @extend %rounded-4;
+      z-index: 9;
+   }
+
+   .sticky-menu-toggle {
+      @include medium {
+         display: none !important;
+      }
+   }

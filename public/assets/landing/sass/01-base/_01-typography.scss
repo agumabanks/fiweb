@@ -1,0 +1,154 @@
+/* ************************
+   01.1: Reset
+   ********************* */
+   
+// *,
+// *::before,
+// *::after {
+//   box-sizing: border-box;
+// }
+
+* {
+  outline: none !important;
+}
+
+html {
+  font-family: sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  accent-color: var(--bs-primary);
+}
+
+body {
+  --bs-body-text-align: start;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden !important;
+}
+
+[tabindex="-1"]:focus {
+  outline: 0 !important;
+}
+
+label {
+  text-transform: capitalize;
+  color: var(--title-color);
+}
+
+h1, .h1,
+h2, .h2,
+h3, .h3,
+h4, .h4,
+h5, .h5,
+h6, .h6 {
+  margin: 0;
+  font-weight: var(--bold);
+  line-height: var(--title-line-height);
+  font-family: var(--title-font);
+  color: var(--title-color);
+}
+
+h1, .h1 {
+  font-size: var(--h1_fs);
+}
+
+h2, .h2 {
+  font-size: var(--h2_fs);
+}
+
+h3, .h3 {
+  font-size: var(--h3_fs);
+}
+
+h4, .h4 {
+  font-size: var(--h4_fs);
+}
+
+h5, .h5 {
+  font-size: var(--h5_fs);
+}
+
+h6, .h6 {
+  font-size: var(--h6_fs);
+}
+
+p {
+  // margin-bottom: toRem(16);
+  &:last-child {
+    margin-bottom: toRem(0);
+  }
+  &:empty {
+    margin-bottom: toRem(0);
+  }
+}
+
+a {
+  color: var(--title-color);
+  text-decoration: none;
+  @extend %trans3;
+  &:hover {
+    color: var(--bs-primary);
+  }
+}
+button {
+  color: var(--title-color);
+}
+
+[disabled] {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+textarea {
+  overflow: auto;
+  resize: vertical;
+}
+
+[type="checkbox"] {
+  margin-inline-end: toRem(5);
+}
+
+::selection {
+  text-shadow: none;
+  color: var(--absolute-white);
+  background-color: var(--bs-primary) !important;
+}
+
+::placeholder {
+  color: var(--title-color) !important;
+  opacity: 0.4 !important;
+}
+
+iframe {
+  max-width: 100%;
+}
+
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+}
+
+img {
+  max-inline-size: 100%;
+  height: auto;
+}
+
+
+// Order List
+.list-base,
+ol {
+  padding-inline-start: toRem(24);
+  li {
+      &:not(:last-child) {
+          margin-block-end: toRem(8);
+      }
+  }
+}
+[data-bs-toggle="tooltip"] {
+  cursor: pointer;
+}
+
+label {
+  margin-block-end: toRem(8);
+}

@@ -1,0 +1,108 @@
+/* ************************
+   05.4: Chat
+   ********************* */
+// .chat-list {
+//     &-item {
+//         border-radius: toRem(8);
+//         cursor: pointer;
+//         .media-body {
+//             background-color: var(--bs-white);
+//             padding: toRem(10);
+//             border-radius: toRem(4);
+//             * {
+//                color: var(--bs-body-color)
+//             }
+//         }
+//         &.active {
+//             // background-color: rgba(var(--bs-primary-rgb), .1);
+//             .media-body {
+//                background-color: var(--bs-white);
+//                padding: toRem(10);
+//                border-radius: toRem(4);
+//                * {
+//                   color: var(--title-color);
+//                }
+//             }
+//         }
+//     }
+// }
+
+// .chat-people-name {
+//     display: grid;
+//     grid-template-columns: 1fr toRem(36);
+//     color: var(--title-color);
+// }
+
+// .outgoing_msg, .received_msg {
+//     inline-size: 70%;
+//     margin-block-end: toRem(16);
+//     @include mobileMd {
+//         inline-size: 100%;
+//     }
+// }
+// .received_msg {
+//     .message_text {
+//         background-color: var(--bs-light);
+//         color: var(--title-color);
+//     }
+// }
+// .message_text {
+//     margin-block-end: toRem(5);
+//     padding: toRem(10) toRem(16);
+//     border-radius: toRem(12) toRem(12) toRem(12) toRem(0);
+// }
+// .outgoing_msg {
+//     margin-inline-start: auto;
+//     .message_text {
+//         // background-color: #21978B;
+//         background-color: var(--bs-primary);
+//         color: var(--absolute-white);
+//         border-radius: toRem(12) toRem(12) toRem(0) toRem(12);
+//     }
+// }
+// .time_date {
+//     font-size: toRem(10);
+// }
+
+// .add-img,
+// .add-attatchment {
+//     position: relative;
+//     cursor: pointer;
+//     .material-icons {
+//         cursor: pointer;
+//     }
+//     input {
+//         opacity: 0;
+//         position: absolute;
+//         inline-size: 100%;
+//         block-size: 100%;
+//         inset-block-start: toRem(0);
+//         inset-inline-start: toRem(0);
+//         cursor: pointer;
+//     }
+// }
+// .input_msg_write {
+//     position: relative;
+//     textarea {
+//         block-size: toRem(40);
+//         border: none;
+//         background-color: transparent;
+//         color: var(--title-color);
+//     }
+// }
+
+// .show-upload-file {
+//     background-color: var(--bs-light);
+//     padding: 0.5rem 1rem;
+//     -webkit-margin-after: 0.5rem;
+//     margin-block-end: 0.5rem;
+//     display: flex;
+//     align-items: center;
+//     justify-content: space-between;
+//     gap: 0.5rem;
+// }
+
+// .emoji-keyboard,
+// .upload-file-close {
+//     cursor: pointer;
+// }

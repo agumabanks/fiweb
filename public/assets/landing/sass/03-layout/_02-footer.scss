@@ -1,0 +1,52 @@
+/* ************************
+   03.2: Footer
+   ********************* */
+
+   .footer {
+      &-bottom {
+         background-color: #005F6C;
+         font-size: toRem(14);
+         padding-block: toRem(16);
+      }
+      &-main {
+         padding-block: toRem(240) toRem(80);
+         position: relative;
+         z-index: 1;
+         @include tab {
+            padding-block-start: toRem(300);
+            padding-block-end: 4rem;
+         }
+      }
+      &-bg {
+         position: absolute;
+         z-index: -1;
+         inset-block-start: 0;
+         inset-inline-start: 0;
+         inline-size: 100%;
+         block-size: 100%;
+         @include tab {
+            inset-inline-start: 50%;
+            transform: translateX(-50%);
+            inline-size: 200%;
+         }
+      }
+
+      * {
+         color: rgba(var(--absolute-white-rgb), .9);
+         a {
+            &:hover {
+               color: rgba(var(--absolute-white-rgb), 1);
+            }
+         }
+      }
+   }
+
+
+   .newsletter-area {
+      @include tab {
+         margin-block-end: -6rem;
+      }
+      @include mobileMd {
+         margin-block-end: -10rem;
+      }
+   }
