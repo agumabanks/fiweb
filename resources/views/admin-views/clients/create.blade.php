@@ -41,16 +41,16 @@
                         </div>
 
                         <!-- KYC Verified At Input -->
-                        <div class="col-lg-4">
+                        {{-- <div class="col-lg-4">
                             <label class="form-label">{{ translate('KYC Verified At') }}</label>
                             <input type="date" name="kyc_verified_at" class="form-control" value="{{ old('kyc_verified_at') }}">
-                        </div>
+                        </div> --}}
 
                         <!-- DOB Input -->
-                        <div class="col-lg-4">
+                        {{-- <div class="col-lg-4">
                             <label class="form-label">{{ translate('Date of Birth') }}</label>
                             <input type="date" name="dob" class="form-control" value="{{ old('dob') }}">
-                        </div>
+                        </div> --}}
 
                         <!-- Business Input -->
                         <div class="col-lg-4">
@@ -65,16 +65,16 @@
                         </div>
 
                         <!-- Credit Balance Input -->
-                        <div class="col-lg-4">
+                        {{-- <div class="col-lg-4">
                             <label class="form-label">{{ translate('Credit Balance') }}</label>
                             <input type="number" name="credit_balance" class="form-control" value="{{ old('credit_balance') }}" required>
-                        </div>
+                        </div> --}}
 
                         <!-- Savings Balance Input -->
-                        <div class="col-lg-4">
+                        {{-- <div class="col-lg-4">
                             <label class="form-label">{{ translate('Savings Balance') }}</label>
                             <input type="number" name="savings_balance" class="form-control" value="{{ old('savings_balance') }}" required>
-                        </div>
+                        </div> --}}
 
                         <!-- Agent Selection -->
                         <div class="col-lg-4">

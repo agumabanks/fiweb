@@ -997,8 +997,6 @@ public function createClient(Request $request)
         'business' => 'nullable|string|max:255',
         'nin' => 'nullable|string|max:255',
         'recommenders' => 'nullable|json',
-        'credit_balance' => 'required|numeric|min:0',
-        'savings_balance' => 'required|numeric|min:0',
         'added_by' => 'nullable|string|max:255',
         'next_of_kin' => 'nullable|string|max:255',
         'next_of_kin_phone' => 'nullable|string|max:255',
