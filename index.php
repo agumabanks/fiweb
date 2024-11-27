@@ -7,7 +7,7 @@ define('LARAVEL_START', microtime(true));
 
 /*
 |--------------------------------------------------------------------------
-| Check If The Application Is Under Maintenance banks the great
+| Check If The Application Is Under Maintenance banks the great nnnn
 |--------------------------------------------------------------------------
 |
 | If the application is in maintenance / demo mode via the "down" command
