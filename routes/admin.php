@@ -367,6 +367,11 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         
         Route::get('/add-clients', [ClientController::class, 'createClient'])->name('clients.add');
         Route::post('/store-clients', [ClientController::class, 'store'])->name('clients.store');
+
+        Route::post('/store-clients-photo', [ClientController::class, 'store'])->name('clients.upload'); 
+
+ 
+        
         
         // Loans
         Route::apiResource('loan-applications', LoanApplicationController::class);

@@ -1,4 +1,0 @@
-[17-Aug-2024 19:02:42 America/Boise] PHP Fatal error:  Uncaught Error: Class "App\Http\Controllers\Controller" not found in /home1/alfahote/public_html/website_0ae852b8/app/Http/Controllers/LandingPageController.php:13
-Stack trace:
-#0 {main}
-  thrown in /home1/alfahote/public_html/website_0ae852b8/app/Http/Controllers/LandingPageController.php on line 13

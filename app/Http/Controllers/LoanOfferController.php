@@ -926,6 +926,323 @@ public function payLoan(Request $request): JsonResponse
     }
 }
 
+
+
+public function updateLoanPayment(Request $request, $loanId)
+{
+    // **Validation**
+    $validator = Validator::make($request->all(), [
+        'payment_amount' => 'required|numeric|min:1',
+        'payment_dates'  => 'nullable|string', // Validate as a string
+        'note'           => 'nullable|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        if ($request->ajax()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        } else {
+            return redirect()->back()->withErrors($validator->errors());
+        }
+    }
+
+    // **Process Payment Dates**
+    $paymentDates = [];
+    if ($request->has('payment_dates') && !empty($request->input('payment_dates'))) {
+        $dates = explode(',', $request->input('payment_dates'));
+        foreach ($dates as $date) {
+            try {
+                $parsedDate = \Carbon\Carbon::createFromFormat('Y-m-d', trim($date));
+                $paymentDates[] = $parsedDate->format('Y-m-d');
+            } catch (\Exception $e) {
+                if ($request->ajax()) {
+                    return response()->json(['errors' => ['payment_dates' => 'Invalid date format.']], 422);
+                } else {
+                    return redirect()->back()->withErrors(['payment_dates' => 'Invalid date format.']);
+                }
+            }
+        }
+    }
+
+    // **Start Database Transaction**
+    DB::beginTransaction();
+
+    try {
+        // **Retrieve Loan and Client**
+        $loan = UserLoan::findOrFail($loanId);
+        $client = Client::findOrFail($loan->client_id);
+
+        $paymentAmount = $request->input('payment_amount');
+
+        // **Check if Payment Amount Exceeds Client's Credit Balance**
+        if ($paymentAmount > $client->credit_balance) {
+            if ($request->ajax()) {
+                return response()->json(['errors' => ['payment_amount' => 'Payment amount exceeds client\'s credit balance.']], 400);
+            } else {
+                return redirect()->back()->withErrors(['payment_amount' => 'Payment amount exceeds client\'s credit balance.']);
+            }
+        }
+
+        // **Calculate Remaining Loan Balance**
+        $loanBalance = $loan->final_amount - $loan->paid_amount;
+
+        if ($loanBalance <= 0) {
+            if ($request->ajax()) {
+                return response()->json(['errors' => ['loan' => 'This loan is already fully paid.']], 400);
+            } else {
+                return redirect()->back()->withErrors(['loan' => 'This loan is already fully paid.']);
+            }
+        }
+
+        // **Determine Amount Applied to Loan and Excess**
+        $amountAppliedToLoan = min($paymentAmount, $loanBalance);
+        $excessAmount = $paymentAmount - $amountAppliedToLoan;
+
+        // **Update Loan's Paid Amount**
+        $loan->paid_amount += $amountAppliedToLoan;
+
+        // **Update Loan Status if Fully Paid**
+        if (round($loan->paid_amount, 2) >= round($loan->final_amount, 2)) {
+            $loan->status = 2; // Fully Paid
+
+            // **Update Installments to 'paid'**
+            LoanPaymentInstallment::where('loan_id', $loan->id)
+                ->whereIn('status', ['pending', 'withbalance'])
+                ->update([
+                    'status' => 'paid',
+                    'installment_balance' => 0,
+                ]);
+        }
+
+        $loan->save();
+
+        // **Apply Payment to Installments**
+        $this->applyPaymentToInstallments($loan->id, $amountAppliedToLoan);
+
+        // **Update Client's Credit Balance**
+        $client->credit_balance -= $paymentAmount; // Deduct the entire payment amount
+
+        // **Handle Excess Amount by Adding to Advances**
+        if ($excessAmount > 0) {
+            $installmentAmount = $loan->per_installment;
+            $installmentsCovered = floor($excessAmount / $installmentAmount);
+            $advanceAmount = $installmentsCovered * $installmentAmount;
+
+            if ($installmentsCovered > 0) {
+                // **Create Loan Advance Record**
+                LoanAdvance::create([
+                    'loan_id'                   => $loan->id,
+                    'client_id'                 => $client->id,
+                    'total_advance_amount'      => $advanceAmount,
+                    'remaining_advance_amount'  => $advanceAmount,
+                    'total_installments'        => $installmentsCovered,
+                    'remaining_installments'    => $installmentsCovered,
+                ]);
+            }
+
+            // **Handle Any Remaining Excess Amount**
+            $remainingExcess = $excessAmount - $advanceAmount;
+
+            if ($remainingExcess > 0) {
+                // Optionally, add to savings or handle accordingly
+                $client->savings_balance += $remainingExcess;
+            }
+        }
+
+        $client->save();
+
+        // **Log the Payment Dates**
+        if (!empty($paymentDates)) {
+            \Log::info('Payment Dates for Loan ID ' . $loanId . ':', $paymentDates);
+        } else {
+            \Log::info('No payment dates provided for Loan ID ' . $loanId . '.');
+        }
+
+        // **Record the Payment**
+        LoanPayment::create([
+            'loan_id'        => $loan->id,
+            'client_id'      => $loan->client_id,
+            'agent_id'       => $loan->user_id,
+            'credit_balance' => $client->credit_balance,
+            'amount'         => $paymentAmount, // Original payment amount
+            'payment_date'   => now(),
+            'note'           => $request->input('note') ?? null,
+        ]);
+
+        // **Commit the Transaction**
+        DB::commit();
+
+        // **Return Success Response**
+        if ($request->ajax()) {
+            return response()->json(['message' => 'Payment processed successfully.'], 200);
+        } else {
+            Toastr::success('Loan payment updated successfully');
+            return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
+        }
+
+    } catch (\Exception $e) {
+        // **Rollback the Transaction on Error**
+        DB::rollBack();
+
+        // **Log the Error**
+        \Log::error('Error updating loan payment: ' . $e->getMessage(), [
+            'loan_id'   => $loanId,
+            'client_id' => $loan->client_id,
+            'amount'    => $request->input('payment_amount'),
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json(['errors' => ['server' => 'An error occurred while processing the payment. Please try again later.']], 500);
+        } else {
+            return redirect()->back()->withErrors(['server' => 'An error occurred while processing the payment. Please try again later.']);
+        }
+    }
+}
+
+
+public function updateLoanPaymentNov28(Request $request, $loanId)
+{
+    // Validate the request inputs
+    $validatedData = $request->validate([
+        'payment_amount' => 'required|numeric|min:1',
+        'payment_dates' => 'nullable|string', // Validate as a string
+        'note' => 'nullable|string|max:255',
+    ]);
+
+    // If payment_dates is present, convert it to an array
+    if ($request->has('payment_dates') && !empty($validatedData['payment_dates'])) {
+        $validatedData['payment_dates'] = explode(',', $validatedData['payment_dates']);
+        
+        // Validate the dates after conversion
+        foreach ($validatedData['payment_dates'] as $date) {
+            try {
+                \Carbon\Carbon::createFromFormat('Y-m-d', trim($date));
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['payment_dates' => 'Invalid date format.']);
+            }
+        }
+    } else {
+        $validatedData['payment_dates'] = [];
+    }
+
+    // Retrieve the loan and related details
+    $loan = UserLoan::findOrFail($loanId);
+    $client = Client::findOrFail($loan->client_id);
+
+    // Calculate the remaining amount and determine how much to apply to the loan
+    $remainingAmount = $loan->final_amount - $loan->paid_amount;
+    $amountAppliedToLoan = min($validatedData['payment_amount'], $remainingAmount);
+    $excessAmount = max($validatedData['payment_amount'] - $amountAppliedToLoan, 0);
+
+    // Update the loan's paid amount
+    $loan->paid_amount += $amountAppliedToLoan;
+
+    // Update the loan status if fully paid
+    if ($loan->paid_amount >= $loan->final_amount) {
+        $loan->status = 2; // Fully Paid
+    }
+
+    // Save the loan
+    $loan->save();
+
+    // Update client's credit balance by the amount applied to the loan
+    $client->credit_balance -= $amountAppliedToLoan;
+
+    // If there's an excess amount, add it to the client's savings account
+    if ($excessAmount > 0) {
+        $client->savings_balance += $excessAmount;
+    }
+
+    // Save the client
+    $client->save();
+
+    // Apply the amount applied to the loan to the installments
+    if ($amountAppliedToLoan > 0) {
+        $paymentAmountRemaining = $amountAppliedToLoan;
+
+        // Retrieve all pending installments ordered by date (earliest first)
+        $pendingInstallments = LoanPaymentInstallment::where('loan_id', $loanId)
+            ->where('status', 'pending')
+            ->orderBy('date', 'asc')
+            ->get();
+
+        foreach ($pendingInstallments as $installment) {
+            $installmentAmount = $installment->install_amount;
+            $installmentBalance = $installment->installment_balance ?? $installmentAmount; // Use installment balance if available
+
+            $totalInstallmentAmount = $installmentAmount + $installmentBalance;
+
+            if ($paymentAmountRemaining >= $totalInstallmentAmount) {
+                // Full payment for this installment
+                $installment->status = 'paid';
+                $installment->installment_balance = 0;
+                $paymentAmountRemaining -= $totalInstallmentAmount;
+            } else {
+                // Partial payment
+                $installment->status = 'withbalance';
+                $installment->installment_balance = $totalInstallmentAmount - $paymentAmountRemaining;
+                $paymentAmountRemaining = 0; // No remaining payment to apply
+            }
+
+            $installment->save();
+
+            // If there's no more remaining amount to apply, exit the loop
+            if ($paymentAmountRemaining <= 0) {
+                break;
+            }
+        }
+    }
+
+    // Log the payment dates
+    if (!empty($validatedData['payment_dates'])) {
+        \Log::info('Payment Dates:', $validatedData['payment_dates']);
+    } else {
+        \Log::info('No payment dates provided.');
+    }
+
+    // Create a record for the payment made
+    LoanPayment::create([
+        'loan_id'        => $loan->id,
+        'client_id'      => $loan->client_id,
+        'agent_id'       => $loan->user_id,
+        'credit_balance' => $client->credit_balance,
+        'amount'         => $validatedData['payment_amount'], // Original payment amount
+        'payment_date'   => now(), // Current date/time as the payment record date
+        'note'           => $validatedData['note'] ?? null,
+    ]);
+
+    // If there's an excess amount, optionally log it or create a separate savings transaction
+    if ($excessAmount > 0) {
+        // Log the excess amount
+        \Log::info("Excess amount of UGX {$excessAmount} added to savings for client ID {$client->id}");
+
+        // Optionally, create a SavingsTransaction record if such a model exists
+        // Uncomment and adjust the following lines if you have a SavingsTransaction model
+        /*
+        SavingsTransaction::create([
+            'client_id'        => $client->id,
+            'amount'           => $excessAmount,
+            'transaction_date' => now(),
+            'note'             => 'Excess loan payment applied to savings.',
+        ]);
+        */
+    }
+
+    // Provide feedback to the user
+    Toastr::success('Loan payment updated successfully');
+
+    // Redirect back to the loan details page with a success message
+    return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
+}
+
+
+
+
+
+
+
+
+
+
 public function storeClientCollateral(Request $request, $clientId)
 {
     // Validate the incoming request data
@@ -1184,9 +1501,42 @@ public function renewLoan(Request $request, $loanId)
     }
 }
 
+protected function applyPaymentToInstallments($loanId, $paymentAmount)
+{
+    $paymentAmountRemaining = $paymentAmount;
+
+    // **Retrieve Pending Installments**
+    $pendingInstallments = LoanPaymentInstallment::where('loan_id', $loanId)
+        ->whereIn('status', ['pending', 'withbalance'])
+        ->orderBy('date', 'asc')
+        ->get();
+
+    foreach ($pendingInstallments as $installment) {
+        if ($paymentAmountRemaining <= 0) {
+            break;
+        }
+
+        $installmentBalance = $installment->installment_balance ?? $installment->install_amount;
+
+        if ($paymentAmountRemaining >= $installmentBalance) {
+            // **Full Payment**
+            $installment->status = 'paid';
+            $paymentAmountRemaining -= $installmentBalance;
+            $installment->installment_balance = 0;
+        } else {
+            // **Partial Payment**
+            $installment->status = 'withbalance';
+            $installment->installment_balance = $installmentBalance - $paymentAmountRemaining;
+            $paymentAmountRemaining = 0;
+        }
+
+        $installment->save();
+    }
+}
 
 
-private function applyPaymentToInstallments($loanId, $paymentAmount)
+
+private function applyPaymentToInstallmentsXX($loanId, $paymentAmount)
 {
     $remainingPayment = $paymentAmount;
 
@@ -1537,141 +1887,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
     }
 
 
-    public function updateLoanPayment(Request $request, $loanId)
-    {
-        // Validate the request inputs
-        $validatedData = $request->validate([
-            'payment_amount' => 'required|numeric|min:1',
-            'payment_dates' => 'nullable|string', // Validate as a string
-            'note' => 'nullable|string|max:255',
-        ]);
-    
-        // If payment_dates is present, convert it to an array
-        if ($request->has('payment_dates') && !empty($validatedData['payment_dates'])) {
-            $validatedData['payment_dates'] = explode(',', $validatedData['payment_dates']);
-            
-            // Validate the dates after conversion
-            foreach ($validatedData['payment_dates'] as $date) {
-                try {
-                    \Carbon\Carbon::createFromFormat('Y-m-d', trim($date));
-                } catch (\Exception $e) {
-                    return redirect()->back()->withErrors(['payment_dates' => 'Invalid date format.']);
-                }
-            }
-        } else {
-            $validatedData['payment_dates'] = [];
-        }
-    
-        // Retrieve the loan and related details
-        $loan = UserLoan::findOrFail($loanId);
-        $client = Client::findOrFail($loan->client_id);
-    
-        // Calculate the remaining amount and determine how much to apply to the loan
-        $remainingAmount = $loan->final_amount - $loan->paid_amount;
-        $amountAppliedToLoan = min($validatedData['payment_amount'], $remainingAmount);
-        $excessAmount = max($validatedData['payment_amount'] - $amountAppliedToLoan, 0);
-    
-        // Update the loan's paid amount
-        $loan->paid_amount += $amountAppliedToLoan;
-    
-        // Update the loan status if fully paid
-        if ($loan->paid_amount >= $loan->final_amount) {
-            $loan->status = 2; // Fully Paid
-        }
-    
-        // Save the loan
-        $loan->save();
-    
-        // Update client's credit balance by the amount applied to the loan
-        $client->credit_balance -= $amountAppliedToLoan;
-    
-        // If there's an excess amount, add it to the client's savings account
-        if ($excessAmount > 0) {
-            $client->savings_balance += $excessAmount;
-        }
-    
-        // Save the client
-        $client->save();
-    
-        // Apply the amount applied to the loan to the installments
-        if ($amountAppliedToLoan > 0) {
-            $paymentAmountRemaining = $amountAppliedToLoan;
-    
-            // Retrieve all pending installments ordered by date (earliest first)
-            $pendingInstallments = LoanPaymentInstallment::where('loan_id', $loanId)
-                ->where('status', 'pending')
-                ->orderBy('date', 'asc')
-                ->get();
-    
-            foreach ($pendingInstallments as $installment) {
-                $installmentAmount = $installment->install_amount;
-                $installmentBalance = $installment->installment_balance ?? $installmentAmount; // Use installment balance if available
-    
-                $totalInstallmentAmount = $installmentAmount + $installmentBalance;
-    
-                if ($paymentAmountRemaining >= $totalInstallmentAmount) {
-                    // Full payment for this installment
-                    $installment->status = 'paid';
-                    $installment->installment_balance = 0;
-                    $paymentAmountRemaining -= $totalInstallmentAmount;
-                } else {
-                    // Partial payment
-                    $installment->status = 'withbalance';
-                    $installment->installment_balance = $totalInstallmentAmount - $paymentAmountRemaining;
-                    $paymentAmountRemaining = 0; // No remaining payment to apply
-                }
-    
-                $installment->save();
-    
-                // If there's no more remaining amount to apply, exit the loop
-                if ($paymentAmountRemaining <= 0) {
-                    break;
-                }
-            }
-        }
-    
-        // Log the payment dates
-        if (!empty($validatedData['payment_dates'])) {
-            \Log::info('Payment Dates:', $validatedData['payment_dates']);
-        } else {
-            \Log::info('No payment dates provided.');
-        }
-    
-        // Create a record for the payment made
-        LoanPayment::create([
-            'loan_id'        => $loan->id,
-            'client_id'      => $loan->client_id,
-            'agent_id'       => $loan->user_id,
-            'credit_balance' => $client->credit_balance,
-            'amount'         => $validatedData['payment_amount'], // Original payment amount
-            'payment_date'   => now(), // Current date/time as the payment record date
-            'note'           => $validatedData['note'] ?? null,
-        ]);
-    
-        // If there's an excess amount, optionally log it or create a separate savings transaction
-        if ($excessAmount > 0) {
-            // Log the excess amount
-            \Log::info("Excess amount of UGX {$excessAmount} added to savings for client ID {$client->id}");
-    
-            // Optionally, create a SavingsTransaction record if such a model exists
-            // Uncomment and adjust the following lines if you have a SavingsTransaction model
-            /*
-            SavingsTransaction::create([
-                'client_id'        => $client->id,
-                'amount'           => $excessAmount,
-                'transaction_date' => now(),
-                'note'             => 'Excess loan payment applied to savings.',
-            ]);
-            */
-        }
-    
-        // Provide feedback to the user
-        Toastr::success('Loan payment updated successfully');
-    
-        // Redirect back to the loan details page with a success message
-        return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
-    }
-
+   
 
 
     public function updateLoanPayment10(Request $request, $loanId)
