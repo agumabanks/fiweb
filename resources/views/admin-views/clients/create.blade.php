@@ -14,7 +14,7 @@
 <div class="content container-fluid">
     <!-- Header -->
     <div class="d-flex align-items-center mb-5">
-        <img width="32" src="{{ asset('public/assets/admin/img/icons/client-add.svg') }}" alt="{{ translate('client') }}" class="me-3">
+        {{-- <img width="32" src="{{ asset('public/assets/admin/img/icons/client-add.svg') }}" alt="{{ translate('client') }}" class="me-3"> --}}
         <h1 class="page-header-title">{{ translate('Add New Client') }}</h1>
     </div>
 
@@ -43,17 +43,17 @@
                     </div>
 
                     <!-- Email Input -->
-                    <div class="col-lg-6">
+                    {{-- <div class="col-lg-6">
                         <label class="form-label">{{ translate('Email Address') }}</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
                             <input type="email" name="email" class="form-control" placeholder="{{ translate('Enter email address') }}" value="{{ old('email') }}">
                         </div>
-                    </div>
+                    </div> --}}
 
                     <!-- Address Input -->
                     <div class="col-lg-6">
-                        <label class="form-label">{{ translate('Residential Address') }}</label>
+                        <label class="form-label">{{ translate('Address') }}</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
                             <input type="text" name="address" class="form-control" placeholder="{{ translate('Enter address') }}" value="{{ old('address') }}">
@@ -61,14 +61,14 @@
                     </div>
 
                     <!-- Status Input -->
-                    <div class="col-lg-6">
+                    {{-- <div class="col-lg-6">
                         <label class="form-label">{{ translate('Account Status') }} <span class="text-danger">*</span></label>
                         <select name="status" class="form-select select2" required>
                             <option value="">{{ translate('Select status') }}</option>
                             <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>{{ translate('Active') }}</option>
                             <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>{{ translate('Inactive') }}</option>
                         </select>
-                    </div>
+                    </div> --}}
 
                     <!-- Business Input -->
                     <div class="col-lg-6">
@@ -91,7 +91,7 @@
                     <!-- Agent Selection -->
                     <div class="col-lg-6">
                         <label class="form-label">{{ translate('Assigned Agent') }} <span class="text-danger">*</span></label>
-                        <select name="added_by" class="form-select select2" required>
+                        <select name="added_by" class=" form-control form-select select2 " required>
                             <option value=""> {{ translate('Select agent') }}</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}" {{ old('added_by') == $user->id ? 'selected' : '' }}>
@@ -158,7 +158,7 @@
 
                 <!-- Form Actions -->
                 <div class="d-flex justify-content-end mt-5">
-                    <button type="reset" class="btn btn-outline-secondary me-3">{{ translate('Reset') }}</button>
+                    <button type="reset" class="btn btn-outline-secondary me-3 mr-2">{{ translate('Reset') }}</button>
                     <button type="submit" class="btn btn-primary">{{ translate('Submit') }}</button>
                 </div>
             </form>

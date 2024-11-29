@@ -9,11 +9,18 @@
     <div class="">
         <div class="row h-100">
             <!-- Client Details Card -->
+            {{-- <a href="{{ route('admin.clients.profile', $client->id) }}" class="text-decoration-none text-dark">
+                <h1 class="page-header-title m-0">{{ $client->name }}</h1>
+            </a> --}}
             <div class="col-md-4 mb-3 d-flex">
                 <div class="card shadow-sm flex-fill">
-                    <div class="card-header bg-gradient-primary text-white">
+                    <div  class="card-header bg-gradient-primary text-white">
                         <h5 class="mb-0">Client Details</h5>
-                    </div>
+                        <a class="action-btn btn btn-outline-primary"
+                                href="{{ route('admin.clients.profile', $client->id) }}">
+                                <i class="fa fa-eye" aria-hidden="true"></i>
+                       </a>
+            </div>
                     <div class="card-body">
                         <p class="mb-2"><strong>Name:</strong> {{ $client->name }}</p>
                         <p class="mb-2"><strong>Email:</strong> {{ $client->email }}</p>
@@ -28,6 +35,10 @@
                 <div class="card shadow-sm flex-fill">
                     <div class="card-header bg-gradient-primary text-white">
                         <h5 class="mb-0">Loan Details</h5>
+                        <a class="action-btn btn btn-outline-primary"
+                                    href=" {{ route('admin.loans.show', $loan->id) }}">
+                                    <i class="fa fa-eye" aria-hidden="true"></i>
+                        </a>
                     </div>
                     <div class="card-body">
                         <p class="mb-2"><strong>Daily Amount:</strong> UGX {{ number_format($loan->per_installment, 0) }}</p>
@@ -46,7 +57,7 @@
             <div class="col-md-4 mb-3 d-flex">
                 <div class="card shadow-sm flex-fill">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Make a Payment</h5>
+                        <h5 class="mb-0 text-white">Make a Payment</h5>
                     </div>
                     <div class="card-body">
                         <form id="paymentForm" action="{{ route('admin.loans.updatePayment', $loan->id) }}" method="POST">

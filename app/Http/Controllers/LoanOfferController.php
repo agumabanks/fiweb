@@ -243,9 +243,34 @@ class LoanOfferController extends Controller
             return back()->with('success', 'Loan and its installments deleted successfully.');
         }
 
+        public function addClientLoan($id)
+        {
+            // Fetch the necessary data
+            $client = Client::with('guarantors')->find($id); // Load client with related guarantors
+            $loanPlans = LoanPlan::all();
+        
+            // Check if client or loanPlans is null and handle appropriately
+            if (!$client || !$loanPlans) {
+                return redirect()->back()->withErrors(['message' => 'Invalid Client or Loan Plans']);
+            }
+        
+            // Fetch agents who manage clients
+            $agents = User::join('clients', 'users.id', '=', 'clients.added_by')
+                ->select(
+                    'users.id',
+                    'users.f_name',
+                    'users.l_name',
+                    \DB::raw('COUNT(clients.id) as client_count'),
+                    \DB::raw('SUM(clients.credit_balance) as total_money_out')
+                )
+                ->groupBy('users.id', 'users.f_name', 'users.l_name')
+                ->get();
+        
+            // Return the view with the data
+            return view('admin-views.Loans.addClientLoan', compact('client', 'loanPlans', 'agents'));
+        }
     
-    
-    public function addClientLoan($id)
+    public function addClientLoanNov($id)
         {
             // Fetch the necessary data
              $client = Client::find($id); // Assuming $loan has a client_id

@@ -40,6 +40,26 @@
     </div>
 </div>
 
+<!-- Client Search Modal -->
+<div class="modal fade" id="clientSearchModal" tabindex="-1" role="dialog" aria-labelledby="clientSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>{{ translate('Search Clients') }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="{{ translate('Close') }}">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="clientSearchInput" class="form-control" placeholder="{{ translate('Type to search clients...') }}" autocomplete="off">
+                <div id="clientSearchResults" class="list-group mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 @include('layouts.admin.partials._front-settings')
 
 @include('layouts.admin.partials._header')
@@ -59,6 +79,78 @@
 <script src="{{asset('public/assets/admin/js/theme.min.js')}}"></script>
 <script src="{{asset('public/assets/admin/js/sweet_alert.js')}}"></script>
 <script src="{{asset('public/assets/admin/js/toastr.js')}}"></script>
+<script>
+   document.addEventListener('DOMContentLoaded', function () {
+    let searchTimeout;
+
+    // Shortcut Listener
+    document.addEventListener('keydown', function (event) {
+        if (event.ctrlKey && event.key.toLowerCase() === 'k') {
+            event.preventDefault(); // Prevent default browser behavior
+            $('#clientSearchModal').modal('show');
+            setTimeout(() => document.getElementById('clientSearchInput').focus(), 500); // Focus on input after modal opens
+        }
+    });
+
+    // Debounced Search Function
+    function performSearch(query) {
+        $.ajax({
+            url: '{{ route("admin.clients.search") }}',
+            method: 'GET',
+            data: { q: query },
+            success: function (data) {
+                let resultsDiv = document.getElementById('clientSearchResults');
+                resultsDiv.innerHTML = ''; // Clear previous results
+
+                if (data.clients.length) {
+                    data.clients.forEach(client => {
+                        let link = document.createElement('a');
+                        link.href = `/admin/clients/${client.id}`;
+                        link.className = 'list-group-item list-group-item-action';
+
+                        // Format the credit balance
+                        let formattedBalance = new Intl.NumberFormat().format(client.credit_balance);
+
+                        // Set the display text
+                        link.textContent = `${client.name} - {{ translate('Credit Balance') }}: ${formattedBalance}`;
+
+                        resultsDiv.appendChild(link);
+                    });
+                } else {
+                    resultsDiv.innerHTML = `<p class="text-muted">{{ translate('No clients found') }}</p>`;
+                }
+            },
+            error: function () {
+                document.getElementById('clientSearchResults').innerHTML = `<p class="text-danger">{{ translate('An error occurred while searching.') }}</p>`;
+            }
+        });
+    }
+
+    // Input Event with Debouncing
+    document.getElementById('clientSearchInput').addEventListener('input', function (event) {
+        let query = event.target.value.trim();
+
+        clearTimeout(searchTimeout); // Clear previous timeout
+
+        if (query.length > 2) { // Start searching after 3 characters
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 300); // Wait for 300ms after user stops typing
+        } else {
+            // Clear results if query is too short
+            document.getElementById('clientSearchResults').innerHTML = '';
+        }
+    });
+
+    // Clear search input and results when modal is closed
+    $('#clientSearchModal').on('hidden.bs.modal', function () {
+        document.getElementById('clientSearchInput').value = '';
+        document.getElementById('clientSearchResults').innerHTML = '';
+    });
+});
+
+    </script>
+    
 <script>
     $(window).on('load', function() {
         if ($(".navbar-vertical-content li.active").length) {
@@ -86,6 +178,8 @@
         }).hide();
     });
 </script>
+
+<script
 {{-- <script>
         $(document).ready(function() {
             // Scroll to active menu item

@@ -990,8 +990,8 @@ public function createClient(Request $request)
         'name' => 'required|string|max:255',
         'email' => 'nullable|string|email|max:255|unique:clients',
         'phone' => 'required|string|max:255',
-        'address' => 'nullable|string|max:255',
-        'status' => 'required|string|max:255',
+        'address' => 'required|string|max:255',
+        'status' => 'nullable|string|max:255',
         'kyc_verified_at' => 'nullable|date',
         'dob' => 'nullable|date',
         'business' => 'nullable|string|max:255',
@@ -1007,8 +1007,10 @@ public function createClient(Request $request)
 
     // Generate email if it's not provided
     if (empty($validatedData['email'])) {
-        // Create an email from the name (make it lowercase and remove any spaces)
-        $validatedData['email'] = strtolower(str_replace(' ', '', $validatedData['name'])) . '@sanaa.co';
+        // Create an email from the phone (make it lowercase and remove any spaces)
+        $validatedData['email'] = strtolower(str_replace(' ', '', $validatedData['phone'])) . '@sanaa.co';
+        $validatedData['status'] = 'active';
+
     }
 
     // Assign the branch ID from the request or the logged-in user if not provided
@@ -1324,6 +1326,29 @@ function generateSanaaCardData()
 
         return response()->json(response_formatter(DEFAULT_200, $clients, null), 200);
     }
+
+
+
+    // searchClient
+   
+    public function searchClient(Request $request)
+{
+    $query = $request->get('q');
+
+    $clients = Client::query()
+        ->where('name', 'LIKE', "%{$query}%")
+        ->orWhere('id', 'LIKE', "%{$query}%")
+        ->orderBy('name')
+        ->limit(10) // Limit the number of results
+        ->get(['id', 'name', 'credit_balance']); // Include credit_balance
+
+
+    return response()->json([
+        'clients' => $clients
+    ]);
+}
+
+
     
     // agents clints
       //  get client profile 

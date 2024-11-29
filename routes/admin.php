@@ -301,6 +301,10 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         Route::post('admin/loans/storeClientLoan', [LoanOfferController::class, 'storeClientLoan'])->name('loans.storeClientLoan');
         Route::get('admin/loans/updateClientLoan/{id}', [LoanOfferController::class, 'addClientLoan'])->name('loans.updateClientLoan');
 
+
+        // client search with shortcut
+        Route::get('admin/clients/search', [ClientController::class, 'searchClient'])->name('clients.search');
+
     // pay loan by admin
         Route::get('/loan/{loanid}/pay', [LoanOfferController::class, 'adminPayingLoan'])->name('loans.admin.pay1');
         

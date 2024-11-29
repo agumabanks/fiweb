@@ -166,11 +166,11 @@
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Excess Funds
-                            <span class="font-weight-bold">UGX {{ number_format($financialSummary['excussF'] ?? 20, 0) }}</span>
+                            <span class="font-weight-bold">UGX {{ number_format($financialSummary['shotage'] ?? 20, 0) }}</span>
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Total Shortages
-                            <span class="font-weight-bold">UGX {{ number_format($financialSummary['shotage'] ?? 0, 0) }}</span>
+                            <span class="font-weight-bold">UGX {{ number_format($financialSummary['excussF'] ?? 0, 0) }}</span>
                         </li>
                     </ul>
                 </div>

@@ -113,6 +113,10 @@ public function savingsAccounts()
     //     return $this->belongsTo(User::class, 'agent_id'); // Adjust 'agent_id' based on your database schema
     // }
 
+    public function guarantors()
+{
+    return $this->hasMany(Guarantor::class, 'client_id');
+}
 
     /**
      * Relationship with the Branch model.
