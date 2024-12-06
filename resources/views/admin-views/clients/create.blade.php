@@ -90,7 +90,7 @@
 
                     <!-- Agent Selection -->
                     <div class="col-lg-6">
-                        <label class="form-label">{{ translate('Assigned Agent') }} <span class="text-danger">*</span></label>
+                        <label class="form-label">{{ translate('Assigned Field Officer') }} <span class="text-danger">*</span></label>
                         <select name="added_by" class=" form-control form-select select2 " required>
                             <option value=""> {{ translate('Select agent') }}</option>
                             @foreach($users as $user)

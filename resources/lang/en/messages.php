@@ -2128,4 +2128,11 @@
   'Type to search clients...' => 'Type to search clients...',
   'No clients found' => 'No clients found',
   'An error occurred while searching.' => 'An error occurred while searching.',
+  'Sacco Services' => 'Sacco Services',
+  'Transactions History' => 'Transactions History',
+  'All Loans Pays' => 'All Loans Pays',
+  'Arrears Loans' => 'Arrears Loans',
+  'Loans Arrears' => 'Loans Arrears',
+  'Loans Advances' => 'Loans Advances',
+  'Assigned Field Officer' => 'Assigned Field Officer',
 );

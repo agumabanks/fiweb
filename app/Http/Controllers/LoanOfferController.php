@@ -50,6 +50,104 @@ use Carbon\Carbon;
 class LoanOfferController extends Controller
 {
 
+    public function loanArrearsIndex()
+    {
+        // Returns the Blade view that has the DataTable and filters
+        return view('admin-views.Loans.arrears.index');
+    }
+    
+    public function loanArrearsData(Request $request)
+    {
+        $currentHour = Carbon::now()->hour;
+        
+        // If before 8 AM, consider all running loans as in arrears:
+        // otherwise, only those with overdue installments
+        $query = DB::table('user_loans')
+            ->join('clients', 'clients.id', '=', 'user_loans.client_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'user_loans.user_id')
+            ->where('user_loans.status', 1) // Running loans
+            ->select(
+                'clients.id as client_id',
+                'clients.name as client_name',
+                'clients.phone as client_phone',
+                'user_loans.id as loan_id',
+                'user_loans.trx as loan_transaction_id',
+                'agents.f_name as agent_first_name',
+                'agents.l_name as agent_last_name'
+            );
+    
+        if ($currentHour >= 8) {
+            // After 8 AM: Show only loans with overdue installments
+            $query->join('loan_payment_installments', 'loan_payment_installments.loan_id', '=', 'user_loans.id')
+                ->whereIn('loan_payment_installments.status', ['pending', 'withbalance'])
+                ->where('loan_payment_installments.date', '<', Carbon::now()->startOfDay())
+                ->addSelect(
+                    DB::raw('COUNT(loan_payment_installments.id) as total_overdue_installments'),
+                    DB::raw('SUM(loan_payment_installments.install_amount) as total_overdue_amount'),
+                    DB::raw('MIN(loan_payment_installments.date) as earliest_overdue_date')
+                )
+                ->groupBy('user_loans.id', 'clients.id', 'clients.name', 'clients.phone', 'user_loans.trx', 'agents.f_name', 'agents.l_name');
+        } else {
+            // Before 8 AM: Assume all running loans are in arrears
+            // In a real scenario, you may want to still require installments to be due.
+            // For simplicity, let's assume total_overdue_installments = total_installment - installments paid (if you store that).
+            // Here, we might need a different logic: 
+            // Let's say all installments up to yesterday are overdue:
+            $query->join('loan_payment_installments', 'loan_payment_installments.loan_id', '=', 'user_loans.id')
+                ->whereIn('loan_payment_installments.status', ['pending', 'withbalance'])
+                ->where('loan_payment_installments.date', '<', Carbon::now()->startOfDay())
+                ->addSelect(
+                    DB::raw('COUNT(loan_payment_installments.id) as total_overdue_installments'),
+                    DB::raw('SUM(loan_payment_installments.install_amount) as total_overdue_amount'),
+                    DB::raw('MIN(loan_payment_installments.date) as earliest_overdue_date')
+                )
+                ->groupBy('user_loans.id', 'clients.id', 'clients.name', 'clients.phone', 'user_loans.trx', 'agents.f_name', 'agents.l_name');
+        }
+    
+        // Searching
+        $searchValue = $request->input('search.value');
+        if ($searchValue) {
+            $query->where(function ($q) use ($searchValue) {
+                $q->where('clients.name', 'LIKE', "%{$searchValue}%")
+                  ->orWhere('clients.phone', 'LIKE', "%{$searchValue}%")
+                  ->orWhere('user_loans.trx', 'LIKE', "%{$searchValue}%");
+            });
+        }
+    
+        // Count total records (before filtering)
+        $recordsTotal = $query->count();
+    
+        // Ordering
+        $order = $request->input('order', []);
+        $columns = $request->input('columns', []);
+        if (!empty($order)) {
+            foreach ($order as $o) {
+                $columnIndex = $o['column'];
+                $columnName = $columns[$columnIndex]['data'] ?? 'client_name';
+                $dir = $o['dir'] == 'asc' ? 'asc' : 'desc';
+                $query->orderBy($columnName, $dir);
+            }
+        } else {
+            $query->orderBy('client_name', 'asc');
+        }
+    
+        // Pagination (display 20 per page)
+        $start = $request->input('start', 0);
+        $length = $request->input('length', 20);
+        if ($length != -1) {
+            $query->skip($start)->take($length);
+        }
+    
+        $arrears = $query->get();
+    
+        return response()->json([
+            'draw' => $request->input('draw'),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data' => $arrears
+        ]);
+    }
+    
 
    public function deleteLoanNow($id)
     {
@@ -951,9 +1049,145 @@ public function payLoan(Request $request): JsonResponse
     }
 }
 
-
-
 public function updateLoanPayment(Request $request, $loanId)
+{
+    $validator = Validator::make($request->all(), [
+        'payment_amount' => 'required|numeric|min:1',
+        'note'           => 'nullable|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        if ($request->ajax()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        } else {
+            return redirect()->back()->withErrors($validator->errors());
+        }
+    }
+
+    DB::beginTransaction();
+    try {
+        $loan = UserLoan::findOrFail($loanId);
+        $client = Client::findOrFail($loan->client_id);
+
+        $paymentAmount = $request->input('payment_amount');
+        $note = $request->input('note');
+
+        // Check if Payment Amount Exceeds Client's Credit Balance
+        if ($paymentAmount > $client->credit_balance) {
+            if ($request->ajax()) {
+                return response()->json(['errors' => ['payment_amount' => 'Payment amount exceeds client\'s credit balance.']], 400);
+            } else {
+                return redirect()->back()->withErrors(['payment_amount' => 'Payment amount exceeds client\'s credit balance.']);
+            }
+        }
+
+        // Calculate Total Owed for this loan
+        $loanBalance = max($loan->final_amount - $loan->paid_amount, 0);
+
+        $amountAppliedToLoan = min($paymentAmount, $loanBalance);
+        $excessAmount = $paymentAmount - $amountAppliedToLoan;
+
+        // Update Loan's Paid Amount
+        $loan->paid_amount += $amountAppliedToLoan;
+
+        // If fully paid
+        if (round($loan->paid_amount, 2) >= round($loan->final_amount, 2)) {
+            $loan->status = 2; // Fully Paid
+            // Mark all remaining installments as 'paid'
+            LoanPaymentInstallment::where('loan_id', $loan->id)
+                ->whereIn('status', ['pending', 'withbalance'])
+                ->update([
+                    'status' => 'paid',
+                    'installment_balance' => 0,
+                ]);
+        }
+
+        $loan->save();
+
+        // Apply Payment to Installments
+        $this->applyPaymentToInstallments($loan->id, $amountAppliedToLoan);
+
+        // If there's excess payment, convert it to advance installments
+        if ($excessAmount > 0 && $loan->status != 2) {
+            $installmentAmount = $loan->per_installment;
+            $installmentsCovered = floor($excessAmount / $installmentAmount);
+            $advanceAmount = $installmentsCovered * $installmentAmount;
+
+            if ($installmentsCovered > 0) {
+                // Check if there's an existing advance record for this loan
+                $advance = LoanAdvance::where('loan_id', $loan->id)->first();
+
+                if (!$advance) {
+                    $advance = new LoanAdvance();
+                    $advance->loan_id = $loan->id;
+                    $advance->client_id = $client->id;
+                    $advance->total_advance_amount = $advanceAmount;
+                    $advance->remaining_advance_amount = $advanceAmount;
+                    $advance->total_installments = $installmentsCovered;
+                    $advance->remaining_installments = $installmentsCovered;
+                } else {
+                    // Update existing advance
+                    $advance->total_advance_amount += $advanceAmount;
+                    $advance->remaining_advance_amount += $advanceAmount;
+                    $advance->total_installments += $installmentsCovered;
+                    $advance->remaining_installments += $installmentsCovered;
+                }
+
+                $advance->save();
+
+                // If there's any leftover after forming full installments, add to savings
+                $remainingExcess = $excessAmount - $advanceAmount;
+                if ($remainingExcess > 0) {
+                    $client->savings_balance += $remainingExcess;
+                }
+            } else {
+                // If no full installment could be formed, add the entire excess to savings
+                $client->savings_balance += $excessAmount;
+            }
+
+        }
+
+        // Deduct full payment amount from client's credit balance
+        $client->credit_balance -= $paymentAmount;
+        $client->save();
+
+        // Record the Payment
+        LoanPayment::create([
+            'loan_id'        => $loan->id,
+            'client_id'      => $loan->client_id,
+            'agent_id'       => $loan->user_id,
+            'credit_balance' => $client->credit_balance,
+            'amount'         => $paymentAmount,
+            'payment_date'   => now(),
+            'note'           => $note,
+        ]);
+
+        DB::commit();
+
+        if ($request->ajax()) {
+            return response()->json(['message' => 'Payment processed successfully.'], 200);
+        } else {
+            Toastr::success('Loan payment updated successfully');
+            return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
+        }
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error updating loan payment: ' . $e->getMessage(), [
+            'loan_id' => $loanId,
+            'amount'  => $request->input('payment_amount'),
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json(['errors' => ['server' => 'An error occurred while processing the payment.']], 500);
+        } else {
+            return redirect()->back()->withErrors(['server' => 'An error occurred while processing the payment.']);
+        }
+    }
+}
+
+
+public function updateLoanPayment2DEC6(Request $request, $loanId)
 {
     // **Validation**
     $validator = Validator::make($request->all(), [
@@ -1123,141 +1357,76 @@ public function updateLoanPayment(Request $request, $loanId)
     }
 }
 
-
-public function updateLoanPaymentNov28(Request $request, $loanId)
+public function loanAdvancesIndex()
 {
-    // Validate the request inputs
-    $validatedData = $request->validate([
-        'payment_amount' => 'required|numeric|min:1',
-        'payment_dates' => 'nullable|string', // Validate as a string
-        'note' => 'nullable|string|max:255',
-    ]);
-
-    // If payment_dates is present, convert it to an array
-    if ($request->has('payment_dates') && !empty($validatedData['payment_dates'])) {
-        $validatedData['payment_dates'] = explode(',', $validatedData['payment_dates']);
-        
-        // Validate the dates after conversion
-        foreach ($validatedData['payment_dates'] as $date) {
-            try {
-                \Carbon\Carbon::createFromFormat('Y-m-d', trim($date));
-            } catch (\Exception $e) {
-                return redirect()->back()->withErrors(['payment_dates' => 'Invalid date format.']);
-            }
-        }
-    } else {
-        $validatedData['payment_dates'] = [];
-    }
-
-    // Retrieve the loan and related details
-    $loan = UserLoan::findOrFail($loanId);
-    $client = Client::findOrFail($loan->client_id);
-
-    // Calculate the remaining amount and determine how much to apply to the loan
-    $remainingAmount = $loan->final_amount - $loan->paid_amount;
-    $amountAppliedToLoan = min($validatedData['payment_amount'], $remainingAmount);
-    $excessAmount = max($validatedData['payment_amount'] - $amountAppliedToLoan, 0);
-
-    // Update the loan's paid amount
-    $loan->paid_amount += $amountAppliedToLoan;
-
-    // Update the loan status if fully paid
-    if ($loan->paid_amount >= $loan->final_amount) {
-        $loan->status = 2; // Fully Paid
-    }
-
-    // Save the loan
-    $loan->save();
-
-    // Update client's credit balance by the amount applied to the loan
-    $client->credit_balance -= $amountAppliedToLoan;
-
-    // If there's an excess amount, add it to the client's savings account
-    if ($excessAmount > 0) {
-        $client->savings_balance += $excessAmount;
-    }
-
-    // Save the client
-    $client->save();
-
-    // Apply the amount applied to the loan to the installments
-    if ($amountAppliedToLoan > 0) {
-        $paymentAmountRemaining = $amountAppliedToLoan;
-
-        // Retrieve all pending installments ordered by date (earliest first)
-        $pendingInstallments = LoanPaymentInstallment::where('loan_id', $loanId)
-            ->where('status', 'pending')
-            ->orderBy('date', 'asc')
-            ->get();
-
-        foreach ($pendingInstallments as $installment) {
-            $installmentAmount = $installment->install_amount;
-            $installmentBalance = $installment->installment_balance ?? $installmentAmount; // Use installment balance if available
-
-            $totalInstallmentAmount = $installmentAmount + $installmentBalance;
-
-            if ($paymentAmountRemaining >= $totalInstallmentAmount) {
-                // Full payment for this installment
-                $installment->status = 'paid';
-                $installment->installment_balance = 0;
-                $paymentAmountRemaining -= $totalInstallmentAmount;
-            } else {
-                // Partial payment
-                $installment->status = 'withbalance';
-                $installment->installment_balance = $totalInstallmentAmount - $paymentAmountRemaining;
-                $paymentAmountRemaining = 0; // No remaining payment to apply
-            }
-
-            $installment->save();
-
-            // If there's no more remaining amount to apply, exit the loop
-            if ($paymentAmountRemaining <= 0) {
-                break;
-            }
-        }
-    }
-
-    // Log the payment dates
-    if (!empty($validatedData['payment_dates'])) {
-        \Log::info('Payment Dates:', $validatedData['payment_dates']);
-    } else {
-        \Log::info('No payment dates provided.');
-    }
-
-    // Create a record for the payment made
-    LoanPayment::create([
-        'loan_id'        => $loan->id,
-        'client_id'      => $loan->client_id,
-        'agent_id'       => $loan->user_id,
-        'credit_balance' => $client->credit_balance,
-        'amount'         => $validatedData['payment_amount'], // Original payment amount
-        'payment_date'   => now(), // Current date/time as the payment record date
-        'note'           => $validatedData['note'] ?? null,
-    ]);
-
-    // If there's an excess amount, optionally log it or create a separate savings transaction
-    if ($excessAmount > 0) {
-        // Log the excess amount
-        \Log::info("Excess amount of UGX {$excessAmount} added to savings for client ID {$client->id}");
-
-        // Optionally, create a SavingsTransaction record if such a model exists
-        // Uncomment and adjust the following lines if you have a SavingsTransaction model
-        /*
-        SavingsTransaction::create([
-            'client_id'        => $client->id,
-            'amount'           => $excessAmount,
-            'transaction_date' => now(),
-            'note'             => 'Excess loan payment applied to savings.',
-        ]);
-        */
-    }
-
-    // Provide feedback to the user
-    Toastr::success('Loan payment updated successfully');
-
-    // Redirect back to the loan details page with a success message
-    return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
+    // Return the blade view that lists the loan advances.
+    // Make sure 'admin-views.Loans.advances.index' is the correct path to your view.
+    return view('admin-views.Loans.advances.index');
 }
+
+public function listLoanAdvances(Request $request)
+{
+    $query = DB::table('loan_advances')
+        ->join('user_loans', 'user_loans.id', '=', 'loan_advances.loan_id')
+        ->join('clients', 'clients.id', '=', 'loan_advances.client_id')
+        ->leftJoin('users as agents', 'agents.id', '=', 'user_loans.user_id')
+        ->where('user_loans.status', 1) // Running loans
+        ->select(
+            'clients.id as client_id',
+            'clients.name as client_name',
+            'clients.phone as client_phone',
+            'user_loans.id as loan_id',
+            'user_loans.trx as loan_transaction_id',
+            'agents.f_name as agent_first_name',
+            'agents.l_name as agent_last_name',
+            'loan_advances.total_advance_amount',
+            'loan_advances.remaining_advance_amount',
+            'loan_advances.total_installments',
+            'loan_advances.remaining_installments'
+        );
+
+    // Searching
+    if ($searchValue = $request->input('search.value')) {
+        $query->where(function($q) use ($searchValue) {
+            $q->where('clients.name', 'like', "%{$searchValue}%")
+              ->orWhere('clients.phone', 'like', "%{$searchValue}%")
+              ->orWhere('user_loans.trx', 'like', "%{$searchValue}%");
+        });
+    }
+
+    $recordsTotal = $query->count();
+
+    // Ordering
+    $order = $request->input('order', []);
+    $columns = $request->input('columns', []);
+    if (!empty($order)) {
+        foreach ($order as $o) {
+            $columnIndex = $o['column'];
+            $columnName = $columns[$columnIndex]['data'] ?? 'client_name';
+            $dir = $o['dir'] == 'asc' ? 'asc' : 'desc';
+            $query->orderBy($columnName, $dir);
+        }
+    } else {
+        $query->orderBy('client_name', 'asc');
+    }
+
+    // Pagination: 20 per page
+    $start = $request->input('start', 0);
+    $length = $request->input('length', 20);
+    if ($length != -1) {
+        $query->skip($start)->take($length);
+    }
+
+    $advances = $query->get();
+
+    return response()->json([
+        'draw' => $request->input('draw'),
+        'recordsTotal' => $recordsTotal,
+        'recordsFiltered' => $recordsTotal,
+        'data' => $advances
+    ]);
+}
+
 
 
 

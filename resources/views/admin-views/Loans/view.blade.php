@@ -8,7 +8,11 @@
     <div class="d-flex align-items-center justify-content-between gap-3 mb-4 mt-3">
         <!-- Client Information and Navigation -->
         <div class="d-flex align-items-center gap-3">
-            <img width="24" src="{{ asset('public/assets/admin/img/media/lending.png') }}" alt="{{ translate('transaction') }}">
+            <a class="action-btn btn btn-outline-primary"
+            href="{{ route('admin.clients.profile', $client->id) }}">
+            <i class="fa fa-eye" aria-hidden="true"></i>
+   </a>
+            {{-- <img width="24" src="{{ asset('public/assets/admin/img/media/lending.png') }}" alt="{{ translate('transaction') }}"> --}}
             <a href="{{ route('admin.clients.profile', $client->id) }}" class="text-decoration-none text-dark">
                 <h1 class="page-header-title m-0">{{ $client->name }}</h1>
             </a>

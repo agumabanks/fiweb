@@ -88,6 +88,19 @@
                                     <span class="text-truncate">{{ translate('Loans') }}</span>
                                 </a>
                                 <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/loans*') ? 'block' : 'none' }}">
+                                    
+                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
+                                        <a class="nav-link" href="{{ route('admin.loan-arrears.index') }}" title="{{ translate('Arrears Loans') }}">
+                                            <span class="text-truncate">{{ translate('Loans Arrears') }}</span>
+                                        </a>
+                                    </li>
+
+                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
+                                        <a class="nav-link" href="{{ route('admin.loan-advances.index') }}" title="{{ translate('Arrears Loans') }}">
+                                            <span class="text-truncate">{{ translate('Loans Advances') }}</span>
+                                        </a>
+                                    </li>
+                                    
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/pendingLoans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-pendingLoans') }}" title="{{ translate('Pending Loans') }}">
                                             <span class="text-truncate">{{ translate('Pending Loans') }}</span>
@@ -127,35 +140,38 @@
                             </li>
                             <!-- End Loans -->
 
-                            <!-- Transactions -->
-                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/transactions*') ? 'active' : '' }}">
-                                <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                                   href="javascript:;" title="{{ translate('Transactions') }}">
-                                    <span class="tio-circle nav-indicator-icon"></span>
-                                    <span class="text-truncate">{{ translate('Transactions') }}</span>
-                                </a>
-                                <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/transactions*') ? 'block' : 'none' }}">
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/client/cards*') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('admin.client.cards') }}" title="{{ translate('Sanaa Cards') }}">
-                                            <span class="text-truncate">{{ translate('Sanaa Cards') }}</span>
-                                        </a>
-                                    </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/expense/expenses') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('admin.expense.expenses') }}" title="{{ translate('Cash Flows') }}">
-                                            <span class="text-truncate">{{ translate('Cash Flows') }}</span>
-                                        </a>
-                                    </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/agent-report-transaction') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('admin.agent.trans', ['trx_type' => 'all']) }}" title="{{ translate('Transactions') }}">
-                                            <span class="text-truncate">{{ translate('Transactions') }}</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <!-- End Transactions -->
+                            
                         </ul>
                     </li>
                     <!-- End Financial Services -->
+
+                    <!-- Transactions -->
+                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/transactions*') ? 'active' : '' }}">
+                        <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
+                           href="javascript:;" title="{{ translate('Transactions') }}">
+                              <i class="tio-chart-bar-1 nav-icon"></i>
+
+                            <span class="text-truncate">{{ translate('Transactions') }}</span>
+                        </a>
+                        <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/transactions*') ? 'block' : 'none' }}">
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/client/cards*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('admin.client.cards') }}" title="{{ translate('Sanaa Cards') }}">
+                                    <span class="text-truncate">{{ translate('Sanaa Cards') }}</span>
+                                </a>
+                            </li>
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/expense/expenses') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('admin.expense.expenses') }}" title="{{ translate('Cash Flows') }}">
+                                    <span class="text-truncate">{{ translate('Cash Flows') }}</span>
+                                </a>
+                            </li>
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/agent-report-transaction') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('admin.agent.trans', ['trx_type' => 'all']) }}" title="{{ translate('Transactions') }}">
+                                    <span class="text-truncate">{{ translate('Transactions History') }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <!-- End Transactions -->
 
                     <!-- Clients -->
                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/clients*') ? 'active' : '' }}">
@@ -185,7 +201,7 @@
                                     <span class="text-truncate">{{ translate('Add Client') }}</span>
                                 </a>
                             </li>
-                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/allclients') ? 'active' : '' }}">
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/clients') ? 'active' : '' }}">
                                 <a class="nav-link" href="{{ route('admin.allclients') }}" title="{{ translate('All Clients') }}">
                                     <span class="text-truncate">{{ translate('All Clients') }}</span>
                                 </a>

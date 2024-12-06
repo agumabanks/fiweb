@@ -165,12 +165,22 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     Route::post('/sms/{transactionId}', [TransactionController::class, 'SmsNotification'])->name('transactiosn.sms');
     Route::post('admin/sms/{payment}', [TransactionController::class, 'SmsNotification'])->name('transaction.sms');
 
+    Route::get('/admin/loan-arrears', [LoanOfferController::class, 'loanArrearsIndex'])->name('loan-arrears.index');
+    Route::get('/admin/loan-arrears/data', [LoanOfferController::class, 'loanArrearsData'])->name('loan-arrears.data');
+    
 
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printTransactionReceipt'])->name('transaction.printReceipt');
    
     Route::get('/print-statment/{clientId}', [TransactionController::class, 'showStatment'])->name('print-statment');
  
     // Route::get('/agent-report/{agentId}', [AgentReportController::class, 'index'])->name('agent.report');
+
+
+    // Route::post('/admin/loans/update-payment/{loanId}', [LoanOfferController::class, 'updateLoanPayment'])->name('loans.updatePayment');
+
+    // For listing advances
+    Route::get('/admin/loan-advances', [LoanOfferController::class, 'loanAdvancesIndex'])->name('loan-advances.index');
+    Route::get('/admin/loan-advances/data', [LoanOfferController::class, 'listLoanAdvances'])->name('loan-advances.data');
 
 
  // Example for expense routes

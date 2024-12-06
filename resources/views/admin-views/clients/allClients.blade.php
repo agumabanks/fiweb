@@ -43,7 +43,7 @@
             <!-- Payment Status Filter -->
             <div class="form-group">
                 <select id="payment-status-select" name="payment_status" class="form-control">
-                    <option value="all">{{ translate('All Payment Statuses') }}</option>
+                    <option value="all">{{ translate('All Loans Pays') }}</option>
                     <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>{{ translate('Paid') }}</option>
                     <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>{{ translate('Unpaid') }}</option>
                 </select>
