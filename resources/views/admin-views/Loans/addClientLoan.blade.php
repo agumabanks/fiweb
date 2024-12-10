@@ -12,9 +12,6 @@
                     <p class="text-muted">{{ translate('Provide the necessary details to add a new loan for the client.') }}</p>
                 </div>
                 <div class="card-body">
-                    {{-- Loan Form --}}
-                    {{-- <h5 class="card-title text-muted mb-2">{{ translate('Add Loan for Client') }}</h5> --}}
-                   
                     <form action="{{ route('admin.loans.storeClientLoan') }}" method="POST">
                         @csrf
                         <div class="row">
@@ -95,8 +92,8 @@
                                 @enderror
                             </div>
 
-                            {{-- Guarantor Selection --}}
-                            <div class="col-md-12 mb-3">
+                            {{-- Guarantor Selection (Wrapped in #guarantor-section) --}}
+                            <div class="col-md-12 mb-3" id="guarantor-section">
                                 <label for="guarantors" class="form-label">{{ translate('Select Guarantors') }}</label>
                                 <div class="d-flex align-items-center">
                                     <select class="form-control select2" id="guarantors" name="guarantors[]" multiple required style="width: 90%;">
@@ -106,13 +103,11 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <button type="button" class="btn  btn-outline-primary ml-2 p-2" data-toggle="modal" data-target="#addGuarantorModal">
-                                        <div class=" d-flex align-items-center">
-                                            <i class="tio-user-add mr-1 "></i>{{ translate('Guarantor') }}
+                                    <button type="button" class="btn btn-outline-primary ml-2 p-2" data-toggle="modal" data-target="#addGuarantorModal">
+                                        <div class="d-flex align-items-center">
+                                            <i class="tio-user-add mr-1"></i>{{ translate('Guarantor') }}
                                         </div>
-                                        
                                     </button>
-                                    
                                 </div>
                                 @error('guarantors')
                                     <div class="text-danger small">{{ $message }}</div>
@@ -120,10 +115,6 @@
                             </div>
                         </div>
 
-                        {{-- Save Button --}}
-                        {{-- <div class="mt-4 text-end">
-                            <button type="submit" class="btn btn-primary btn-lg">{{ translate('Add Loan') }}</button>
-                        </div> --}}
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary btn-lg">{{ translate('Submit Loan Application') }}</button>
                         </div>
@@ -158,7 +149,7 @@
                                 <!-- NIN -->
                                 <div class="form-group">
                                     <label for="nin">{{ translate('NIN') }}</label>
-                                    <input type="text" name="nin" class="form-control" required>
+                                    <input type="text" name="nin" class="form-control" >
                                 </div>
 
                                 <!-- Phone Number -->
@@ -178,7 +169,7 @@
                                 <!-- Relationship -->
                                 <div class="form-group">
                                     <label for="client_relationship">{{ translate('Relationship to Client') }}</label>
-                                    <input type="text" name="client_relationship" class="form-control" required>
+                                    <input type="text" name="client_relationship" class="form-control" >
                                 </div>
 
                                 <!-- Job -->
@@ -276,8 +267,11 @@ $(document).ready(function() {
                     timer: 2000
                 });
 
-                // Update the Guarantors select list
-                updateGuarantorsList(response.guarantors, response.newGuarantorId);
+                // Reload the guarantor section to reflect the newly added guarantor
+                $('#guarantor-section').load(location.href + ' #guarantor-section>*', function() {
+                    // Re-initialize Select2 for the newly loaded content
+                    $('#guarantors').select2();
+                });
             },
             error: function(xhr) {
                 // Re-enable the submit button
@@ -302,24 +296,6 @@ $(document).ready(function() {
             }
         });
     });
-
-    function updateGuarantorsList(guarantors, newGuarantorId) {
-        // Clear the existing options
-        $('#guarantors').empty();
-
-        // Append new options
-        $.each(guarantors, function(index, guarantor) {
-            var optionText = guarantor.name + ' - NIN: ' + guarantor.nin + ' (' + guarantor.phone_number + ')';
-            var option = new Option(optionText, guarantor.id, false, false);
-            $('#guarantors').append(option);
-        });
-
-        // Update the selected options to include the new guarantor
-        var selectedGuarantors = $('#guarantors').val() || [];
-        selectedGuarantors.push(newGuarantorId.toString()); // Ensure it's a string
-        $('#guarantors').val(selectedGuarantors).trigger('change.select2');
-    }
 });
-
 </script>
 @endpush

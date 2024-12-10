@@ -2135,4 +2135,5 @@
   'Loans Arrears' => 'Loans Arrears',
   'Loans Advances' => 'Loans Advances',
   'Assigned Field Officer' => 'Assigned Field Officer',
+  'No recent installment payments available.' => 'No recent installment payments available.',
 );
