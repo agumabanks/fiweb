@@ -156,7 +156,14 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 // reports.index'
     Route::get('/savings/reports', [SavingsController::class, 'printTransactionReceipt'])->name('savings.reports.index');
 
-    
+       // Delinquency Report Routes
+       Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('delinquency', [App\Http\Controllers\Admin\Reports\DelinquencyReportController::class, 'index'])->name('delinquency.index');
+        Route::post('delinquency/fetch', [App\Http\Controllers\Admin\Reports\DelinquencyReportController::class, 'fetchData'])->name('delinquency.fetch');
+        Route::get('delinquency/export/pdf', [App\Http\Controllers\Admin\Reports\DelinquencyReportController::class, 'exportPDF'])->name('delinquency.export.pdf');
+        Route::get('delinquency/export/excel', [App\Http\Controllers\Admin\Reports\DelinquencyReportController::class, 'exportExcel'])->name('delinquency.export.excel');
+    });
+
     // print
     // Route to view transaction details
     Route::get('/transaction/{transactionId}', [TransactionController::class, 'show'])->name('transaction.show');
@@ -172,6 +179,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printTransactionReceipt'])->name('transaction.printReceipt');
    
     Route::get('/print-statment/{clientId}', [TransactionController::class, 'showStatment'])->name('print-statment');
+    Route::get('/print-loan-statment/{Id}', [TransactionController::class, 'showLoanStatment'])->name('print-showLoanStatment');
  
     // Route::get('/agent-report/{agentId}', [AgentReportController::class, 'index'])->name('agent.report');
 

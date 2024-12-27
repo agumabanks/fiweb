@@ -41,52 +41,53 @@
                     <!-- End Dashboard -->
 
                     <!-- Reports -->
-                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/report') ? 'active' : '' }}">
-                        <a class="js-navbar-vertical-aside-menu-link nav-link"
-                           href="{{ route('admin.report.index') }}" title="{{ translate('Reports') }}">
-                            <i class="tio-chart-bar-4 nav-icon"></i>
+                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/report*') ? 'active' : '' }}">
+                        <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
+                           href="javascript:;" title="{{ translate('Reports') }}">
+                            <i class="tio-chart-bar-2 nav-icon"></i>
                             <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Reports') }}</span>
                         </a>
+                        
+                        
+
+                        <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/report*') ? 'block' : 'none' }}">
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/report') ? 'active' : '' }}">
+                                    <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                    href="{{ route('admin.report.index') }}" title="{{ translate('Reports') }}">
+                                        <i class="tio-chart-bar-1 nav-icon"></i>
+                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('General Reports') }}</span>
+                                    </a>
+                            </li>
+
+                            {{-- agent --}}
+                                <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/agent-report') ? 'active' : '' }}">
+                                    <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                    href="{{ route('admin.agent.report') }}" title="{{ translate('Reports') }}">
+                                        <i class="tio-chart-bar-4 nav-icon"></i>
+                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Agents Reports') }}</span>
+                                            </a>
+                                </li>
+
+                                <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/aging') ? 'active' : '' }}">
+                                    <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                    href="{{ route('admin.reports.delinquency.index') }}" title="{{ translate('Reports') }}">
+                                        <i class="tio-chart-bar-2 nav-icon"></i>
+                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Aging Reports') }}</span>
+                                    </a>
+                                </li>
+                        </ul>
                     </li>
                     <!-- End Reports -->
 
-                    <!-- Financial Services -->
-                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/financial-services*') ? 'active' : '' }}">
-                        <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                           href="javascript:;" title="{{ translate('Financial Services') }}">
-                            <i class="tio-money nav-icon"></i>
-                            <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Financial Services') }}</span>
-                        </a>
-                        <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/financial-services*') ? 'block' : 'none' }}">
-                            <!-- Savings -->
-                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/savings*') ? 'active' : '' }}">
-                                <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                                   href="javascript:;" title="{{ translate('Savings') }}">
-                                    <span class="tio-circle nav-indicator-icon"></span>
-                                    <span class="text-truncate">{{ translate('Savings') }}</span>
-                                </a>
-                                <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/savings*') ? 'block' : 'none' }}">
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/savings') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('admin.savings.index') }}" title="{{ translate('All Savings Accounts') }}">
-                                            <span class="text-truncate">{{ translate('All Savings Accounts') }}</span>
-                                        </a>
-                                    </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/memberships') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('admin.memberships.index') }}" title="{{ translate('Membership') }}">
-                                            <span class="text-truncate">{{ translate('Membership') }}</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <!-- End Savings -->
 
-                            <!-- Loans -->
-                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/loans*') ? 'active' : '' }}">
+
+                    <!-- Loans -->
+                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/loans*') ? 'active' : '' }}">
                                 <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                                   href="javascript:;" title="{{ translate('Loans') }}">
-                                    <span class="tio-circle nav-indicator-icon"></span>
-                                    <span class="text-truncate">{{ translate('Loans') }}</span>
-                                </a>
+                                    href="javascript:;" title="{{ translate('Financial Services') }}">
+                                        <i class="tio-money nav-icon"></i>
+                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Loans Services') }}</span>
+                                    </a>
                                 <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/loans*') ? 'block' : 'none' }}">
                                     
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
@@ -139,11 +140,7 @@
                                 </ul>
                             </li>
                             <!-- End Loans -->
-
-                            
-                        </ul>
-                    </li>
-                    <!-- End Financial Services -->
+                    
 
                     <!-- Transactions -->
                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/transactions*') ? 'active' : '' }}">
@@ -268,6 +265,12 @@
                             <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/notification/history') ? 'active' : '' }}">
                                 <a class="nav-link" href="{{ route('admin.notification.history') }}" title="{{ translate('Notification History') }}">
                                     <span class="text-truncate">{{ translate('Notification History') }}</span>
+                                </a>
+                            </li>
+
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/settings') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('admin.business-settings.business-setup') }}" title="{{ translate('Notification History') }}">
+                                    <span class="text-truncate">{{ translate('System Settings') }}</span>
                                 </a>
                             </li>
                         </ul>

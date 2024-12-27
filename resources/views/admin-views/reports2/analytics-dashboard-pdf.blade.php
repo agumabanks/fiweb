@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{\App\CentralLogics\Helpers::get_business_settings('business_name')}} {{ ucfirst($period) }} Analytics Report</title>
+    <title>Maslink (B) {{ ucfirst($period) }} Analytics Report</title>
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
@@ -83,7 +83,7 @@
 
     <!-- Header Section -->
     <div class="header">
-        <h1>{{\App\CentralLogics\Helpers::get_business_settings('business_name')}} {{ ucfirst($period) }} Analytics Report</h1>
+        <h1>Maslink (B) Credit {{ ucfirst($period) }} Analytics Report</h1>
         <p>Report Date: {{ \Carbon\Carbon::now()->format('F d, Y') }}</p>
         <p>Period: {{ $startDate->format('F d, Y') }} to {{ $endDate->format('F d, Y') }}</p>
     </div>
@@ -301,7 +301,7 @@
     </div>
 
       <!-- Loan Statistics Section -->
-      {{-- <div class="section">
+      <div class="section">
         <h2>Loan Statistics</h2>
         <div>
             <h3>Loan Metrics</h3>
@@ -315,7 +315,7 @@
                     <td>{{ number_format($loanStatistics['repaymentsReceived'] ?? 0, 0) }} /=</td>
                 </tr>
                 <tr>
-                    <th>Interest Expected</th>
+                    <th>Interest Earned</th>
                     <td>{{ number_format($loanStatistics['interestEarned'] ?? 0, 0) }} /=</td>
                 </tr>
             </table>
@@ -349,10 +349,10 @@
             <p>No delinquency metrics available for the selected period.</p>
             @endif
         </div>
-    </div> --}}
+    </div>
 
     <!-- Key Highlights Section -->
-    {{-- <div class="section">
+    <div class="section">
         <h2>Key Highlights</h2>
         <div>
             <h3>Overview</h3>
@@ -396,7 +396,7 @@
             <p>No top performing agent data available for the selected period.</p>
             @endif
         </div>
-    </div> --}}
+    </div>
 
     <!-- Client Report Section -->
     <div class="section">

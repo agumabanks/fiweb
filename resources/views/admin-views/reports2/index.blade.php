@@ -15,8 +15,8 @@
                     <label for="period" class="mr-2">Select Period:</label>
                     <select name="period" id="period" class="form-control">
                         <option value="daily" {{ $period == 'daily' ? 'selected' : '' }}>Daily</option>
-                        {{-- <option value="weekly" {{ $period == 'weekly' ? 'selected' : '' }}>Weekly</option>
-                        <option value="monthly" {{ $period == 'monthly' ? 'selected' : '' }}>Monthly</option> --}}
+                        <option value="weekly" {{ $period == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                        <option value="monthly" {{ $period == 'monthly' ? 'selected' : '' }}>Monthly</option>
                         <option value="custom" {{ $period == 'custom' ? 'selected' : '' }}>Custom</option>
                     </select>
                 </div>

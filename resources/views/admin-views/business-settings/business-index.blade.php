@@ -649,7 +649,7 @@
                             </div>
                         </div>
 
-                        <div class="row">
+                        {{-- <div class="row">
                             <div class="col-12 col-md-4">
                                 <div class="form-group">
                                     <label class="input-label d-flex align-items-center gap-2">{{translate('logo')}}
@@ -706,7 +706,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="d-flex justify-content-end gap-3">
                             <button type="reset" class="btn btn-secondary">{{translate('reset')}}</button>

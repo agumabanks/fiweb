@@ -195,7 +195,7 @@
                                         <a href="{{ route('admin.loans.show', $loan->id) }}" class="btn btn-primary btn-sm" title="View Loan">
                                             <i class="tio-visible"></i> 
                                         </a>
-                                        <a href="{{ route('admin.loans.show', $loan->id) }}" class="btn btn-secondary btn-sm" title="Print Statement">
+                                        <a href="{{ route('admin.print-showLoanStatment', $loan->id) }}" class="btn btn-secondary btn-sm" title="Print Statement">
                                             <i class="tio-print"></i> Print
                                         </a>
 
