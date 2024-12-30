@@ -100,6 +100,35 @@ class AdminReportController extends Controller
      * @return array
      */
     private function getDateRange($period)
+{
+    $now = Carbon::now();
+
+    switch ($period) {
+        case 'weekly':
+            // Weekly from Monday 00:00:00 to Sunday 23:59:59
+            return [
+                $now->startOfWeek()->setTime(0, 0),
+                $now->endOfWeek()->setTime(23, 59, 59)
+            ];
+        
+        case 'monthly':
+            // Monthly from the 1st 00:00:00 to the last day 23:59:59
+            return [
+                $now->startOfMonth()->setTime(0, 0),
+                $now->endOfMonth()->setTime(23, 59, 59)
+            ];
+        
+        case 'daily':
+        default:
+            // Daily from 00:00:00 to 23:59:59
+            return [
+                $now->copy()->startOfDay(),
+                $now->copy()->endOfDay()
+            ];
+    }
+}
+
+    private function getDateRange29Dec($period)
     {
         $now = Carbon::now();
 
@@ -216,7 +245,9 @@ class AdminReportController extends Controller
 
         
         // total cashInflow  137,000 + 2,001,000  + 0  = 2,138,000
-        $totalCashInflow   = $openingBalance + $OtherCashIn + $CashIn +   $capitalAdded ;
+        $processingFees2       = UserLoan::whereBetween('created_at', [$startDate, $endDate])->sum('processing_fee');
+
+        $totalCashInflow   = $openingBalance + $OtherCashIn + $CashIn +   $capitalAdded + $processingFees2  ;
       
 
 
