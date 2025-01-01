@@ -180,7 +180,7 @@ class AdminReportController extends Controller
             ->get();
 
 
-            $expensesByCategory = Expense::whereBetween('created_at', [$startDate, $endDate])
+            $expensesByCategory = Expense::whereBetween('time', [$startDate, $endDate])
             ->sum('amount');
 
         // Total Expenses Amount
@@ -228,7 +228,7 @@ class AdminReportController extends Controller
         ->whereBetween('date_added', [$startDate, $endDate])
         ->pluck('amount');
 
-        // $allExpenses = Expense::whereBetween('created_at', [$startDate, $endDate])->get();
+        // $allExpenses = Expense::whereBetween('time', [$startDate, $endDate])->get();
 
         // DB::table('actual_cash')->get([
         //     'user_id' => 61,
