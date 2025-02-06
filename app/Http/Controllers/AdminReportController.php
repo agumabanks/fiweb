@@ -203,7 +203,7 @@ class AdminReportController extends Controller
         $membershipShareFunds = Membership::whereBetween('created_at', [$startDate, $endDate])->sum(DB::raw('shares * share_value'));
         $capitalBanked        = Cashflow::whereBetween('created_at', [$startDate, $endDate])->sum('cash_banked');
 
-  // Loan Processing Fees
+  // Loan Processing Fees 
         $loanProcessingFees = $processingFees;
         // Corrected Opening Balance Calculation
         // $openingBalance = Cashflow::where('created_at', '<', $startDate)->orderBy('created_at', 'desc')->value('balance_bf') ?? 0;
@@ -247,7 +247,9 @@ class AdminReportController extends Controller
         // total cashInflow  137,000 + 2,001,000  + 0  = 2,138,000
         $processingFees2       = UserLoan::whereBetween('created_at', [$startDate, $endDate])->sum('processing_fee');
 
-        $totalCashInflow   = $openingBalance + $OtherCashIn + $CashIn +   $capitalAdded + $processingFees2  ;
+        // + $processingFees2 
+
+        $totalCashInflow   = $openingBalance + $OtherCashIn + $CashIn +   $capitalAdded  ;
       
 
 

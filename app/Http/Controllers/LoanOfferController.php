@@ -52,11 +52,169 @@ class LoanOfferController extends Controller
 
     public function loanArrearsIndex()
     {
-        // Returns the Blade view that has the DataTable and filters
-        return view('admin-views.Loans.arrears.index');
+        // Fetch all active agents or all users who are considered "agents".
+        // Adjust the query conditions based on your actual "Agent" logic.
+        $agents = User::where('is_active', 1)->get();
+
+        // Return the Blade view, passing agents for the dropdown.
+        return view('admin-views.Loans.arrears.index', compact('agents'));
     }
-    
+ 
+
+
+
+
+
+    public function removeOrphanedLoans()
+        {
+            // 1) Find all loans that do NOT have a matching client
+            $orphanedLoans = UserLoan::whereDoesntHave('client')->get();
+
+            // 2) Delete them
+            foreach ($orphanedLoans as $loan) {
+                // Optionally delete installments, payments, etc. first
+                // e.g. $loan->installments()->delete();
+
+                // Then delete the loan
+                $loan->delete();
+                $loan->loanPaymentInstallments()->delete();
+                // $loan->loanPayments()->delete();
+                
+            }
+
+            return back()->with('success', 'Successfully removed orphaned loans with missing clients.');
+        }
+
+
+
     public function loanArrearsData(Request $request)
+{
+    $currentHour = Carbon::now()->hour;
+
+    // Only show running loans (status = 1)
+    $query = DB::table('user_loans')
+        ->join('clients', 'clients.id', '=', 'user_loans.client_id')
+        ->leftJoin('users as agents', 'agents.id', '=', 'user_loans.user_id')
+        ->join('loan_payment_installments', 'loan_payment_installments.loan_id', '=', 'user_loans.id')
+        ->where('user_loans.status', 1)
+        ->whereIn('loan_payment_installments.status', ['pending','withbalance'])
+        ->select(
+            'clients.id as client_id',
+            'clients.name as client_name',
+            'clients.phone as client_phone',
+            'clients.credit_balance as client_balance', // add the client's current balance
+            'user_loans.id as loan_id',
+            'user_loans.trx as loan_transaction_id',
+            // We'll group by the earliest overdue date, missed installments, etc.
+            DB::raw('COUNT(loan_payment_installments.id) as total_overdue_installments'),
+            DB::raw('SUM(loan_payment_installments.install_amount) as total_overdue_amount'),
+            DB::raw('MIN(loan_payment_installments.date) as earliest_overdue_date')
+        )
+        ->groupBy(
+            'user_loans.id',
+            'clients.id',
+            'clients.name',
+            'clients.phone',
+            'clients.credit_balance',
+            'user_loans.trx',
+            'agents.f_name',
+            'agents.l_name'
+        );
+
+    // Overdue logic: after 8 AM, only overdue installments < today
+    if ($currentHour >= 8) {
+        $query->where('loan_payment_installments.date', '<', Carbon::now()->startOfDay());
+    } else {
+        $query->where('loan_payment_installments.date', '<', Carbon::now()->startOfDay());
+    }
+
+    // ============= FILTERS ==============
+
+    // 1) Agent filter
+    if ($request->filled('agent_id') && $request->agent_id !== 'all') {
+        $query->where('user_loans.user_id', $request->agent_id);
+    }
+
+    // 2) Search filter
+    $searchValue = $request->input('search.value');
+    if ($searchValue) {
+        $query->where(function ($q) use ($searchValue) {
+            $q->where('clients.name', 'like', "%{$searchValue}%")
+              ->orWhere('clients.phone', 'like', "%{$searchValue}%")
+              ->orWhere('user_loans.trx', 'like', "%{$searchValue}%");
+        });
+    }
+
+    // 3) Overdue months
+    // If "1 month" -> earliest_overdue_date <= now()->subMonths(1)
+    // If "2 months" -> earliest_overdue_date <= now()->subMonths(2)
+    // etc.
+    if ($request->filled('overdue_months')) {
+        $months = (int) $request->overdue_months;
+        $cutoffDate = Carbon::now()->subMonths($months)->startOfDay();
+        // Because we do grouping, we can use having() or filter after we get results.
+        // But let's do a "havingRaw" approach:
+        // We want: MIN(installments.date) <= $cutoffDate
+        // This is tricky with Query Builder. Let's do a simpler approach:
+        $query->havingRaw("MIN(loan_payment_installments.date) <= ?", [$cutoffDate]);
+    }
+
+    // ========== GET RESULTS FOR DATATABLES ==========
+
+    // Step 1: get all results from the DB
+    $allResults = $query->get();
+
+    // Step 2: DataTables normally does ordering in the DB,
+    // but because we have grouping and some custom logic,
+    // we can do an in-memory sort. For large data sets, consider advanced solutions.
+    $order   = $request->input('order', []);
+    $columns = $request->input('columns', []);
+    if (!empty($order)) {
+        foreach ($order as $o) {
+            $columnIndex = $o['column'];
+            $columnName  = $columns[$columnIndex]['data'] ?? 'client_name';
+            $dir         = $o['dir'] === 'asc' ? 'asc' : 'desc';
+
+            if ($dir === 'asc') {
+                $allResults = $allResults->sortBy($columnName)->values();
+            } else {
+                $allResults = $allResults->sortByDesc($columnName)->values();
+            }
+        }
+    } else {
+        // Default sort by client name asc
+        $allResults = $allResults->sortBy('client_name')->values();
+    }
+
+    $recordsTotal = $allResults->count();
+
+    // Step 3: pagination
+    $start  = (int) $request->input('start', 0);
+    $length = (int) $request->input('length', 20);
+    $pagedResults = $allResults->slice($start, $length)->values();
+
+    // ========== SUMMARY DATA ==========
+    // We want to show in the blade: 
+    //   - number of unique clients
+    //   - total overdue amount
+    $uniqueClients           = $allResults->unique('client_id')->count();
+    $totalOverdueAmount      = $allResults->sum('total_overdue_amount');
+
+    // Return DataTables JSON plus the summary
+    return response()->json([
+        'draw'            => (int) $request->input('draw'),
+        'recordsTotal'    => $recordsTotal,
+        'recordsFiltered' => $recordsTotal,
+        'data'            => $pagedResults,
+        'summary'         => [
+            'client_count'         => $uniqueClients,
+            'total_overdue_amount' => $totalOverdueAmount
+        ]
+    ]);
+}
+
+    
+    public function loanArrearsDataXX(Request $request)
     {
         $currentHour = Carbon::now()->hour;
         

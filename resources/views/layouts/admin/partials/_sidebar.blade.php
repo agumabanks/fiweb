@@ -89,7 +89,12 @@
                                         <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Loans Services') }}</span>
                                     </a>
                                 <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/loans*') ? 'block' : 'none' }}">
-                                    
+                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-analysis') ? 'active' : '' }}">
+                                        <a class="nav-link" href="{{ route('admin.loan.analysis.index') }}" title="{{ translate('Loans Analysis') }}">
+                                            <span class="text-truncate">Loans Analysis</span>
+                                        </a>
+                                    </li>
+
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-arrears.index') }}" title="{{ translate('Arrears Loans') }}">
                                             <span class="text-truncate">{{ translate('Loans Arrears') }}</span>

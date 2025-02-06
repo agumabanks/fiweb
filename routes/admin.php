@@ -45,9 +45,10 @@ use App\Http\Controllers\BranchesController;
 use App\Http\Controllers\LoanController;
 
 use App\Http\Controllers\AgentReportController;
-
-
 use App\Http\Controllers\LoanOfferController;
+
+
+use App\Http\Controllers\LoanAnalysisController;
 use App\Http\Controllers\LoanApplicationController;
 use App\Http\Controllers\ClientController;
 
@@ -167,6 +168,21 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     // print
     // Route to view transaction details
     Route::get('/transaction/{transactionId}', [TransactionController::class, 'show'])->name('transaction.show');
+    Route::get('/admin/loans/analysis',         [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
+    Route::get('/loan-analysis/data', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.data');
+
+
+
+
+    Route::get('/admin/loan-arrears', [LoanOfferController::class, 'loanArrearsIndex'])->name('loan-arrears.index');
+    Route::get('/admin/loan-arrears/data', [LoanOfferController::class, 'loanArrearsData'])->name('loan-arrears.data');
+    
+
+    // For listing advances
+    Route::get('/admin/loan-advances', [LoanOfferController::class, 'loanAdvancesIndex'])->name('loan-advances.index');
+    Route::get('/admin/loan-advances/data', [LoanOfferController::class, 'listLoanAdvances'])->name('loan-advances.data');
+  
+
     
     // sendSmsNotification
     Route::post('/sms/{transactionId}', [TransactionController::class, 'SmsNotification'])->name('transactiosn.sms');

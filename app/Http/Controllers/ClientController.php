@@ -4,10 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AgentTransactionsRequest;
-// use App\Models\LoanPayment;
-// use App\Models\User;
-// use App\Models\Branch;
-// use Carbon\Carbon;
+
 use Illuminate\Support\Facades\Cache;
 
 

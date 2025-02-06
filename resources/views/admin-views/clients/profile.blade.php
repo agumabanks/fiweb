@@ -217,7 +217,7 @@
                                             </button>
                                         </form>
 
-                                        @if($loan->status == 0)
+                                        @if($loan->status != 0)
                                         <form action="{{ route('admin.loan.delete', $loan->id) }}" method="POST" class="d-inline-block" onsubmit="return confirm('Are you sure you want to delete this loan?');">
                                             @csrf
                                             @method('DELETE')

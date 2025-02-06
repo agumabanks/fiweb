@@ -2160,4 +2160,5 @@
   'An unexpected error occurred while generating the report.' => 'An unexpected error occurred while generating the report.',
   'Number of Loans' => 'Number of Loans',
   'Month' => 'Month',
+  'Loans Analysis' => 'Loans Analysis',
 );
