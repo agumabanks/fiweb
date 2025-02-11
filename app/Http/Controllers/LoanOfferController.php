@@ -59,7 +59,456 @@ class LoanOfferController extends Controller
         // Return the Blade view, passing agents for the dropdown.
         return view('admin-views.Loans.arrears.index', compact('agents'));
     }
- 
+
+
+
+    public function tellerIndex()
+    {
+        // Example: if you want to load Agents for an agent filter
+        $agents = User::where('is_active', 1)->get();
+
+        return view('admin-views.Loans.teller.index', compact('agents'));
+    }
+
+    /**
+     * Provide DataTables JSON for installments that are "due" (or "pending"/"withbalance")
+     * within a given date range (e.g., today's date by default).
+     */
+    public function tellerData2(Request $request)
+    {
+        // 1) Build the query on "loan_payment_installments"
+        $query = DB::table('loan_payment_installments')
+            ->join('user_loans', 'user_loans.id', '=', 'loan_payment_installments.loan_id')
+            ->join('clients', 'clients.id', '=', 'loan_payment_installments.client_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'loan_payment_installments.agent_id')
+            ->whereIn('loan_payment_installments.status', ['pending', 'withbalance'])
+            ->select(
+                'loan_payment_installments.id as installment_id',
+                'loan_payment_installments.loan_id',
+                'loan_payment_installments.install_amount',
+                'loan_payment_installments.date as installment_date',
+                'loan_payment_installments.status as installment_status',
+                'clients.name as client_name',
+                'clients.phone as client_phone',
+                'clients.credit_balance as client_balance',
+                'user_loans.trx as loan_trx',
+                'user_loans.status as loan_status',
+                DB::raw("CONCAT(agents.f_name, ' ', agents.l_name) as agent_full_name")
+            );
+
+        // 2) Filter by date range (or default to "today").
+        //    Here we show an example "from - to" approach.
+        if ($request->filled('from_date') && $request->filled('to_date')) {
+            $fromDate = Carbon::parse($request->from_date)->startOfDay();
+            $toDate   = Carbon::parse($request->to_date)->endOfDay();
+            $query->whereBetween('loan_payment_installments.date', [$fromDate, $toDate]);
+        } else {
+            // Example: Only today's installments
+            $todayStart = Carbon::now()->startOfDay();
+            $todayEnd   = Carbon::now()->endOfDay();
+            $query->whereBetween('loan_payment_installments.date', [$todayStart, $todayEnd]);
+        }
+
+        // 3) Optional agent filter
+        if ($request->filled('agent_id') && $request->agent_id != 'all') {
+            $query->where('loan_payment_installments.agent_id', $request->agent_id);
+        }
+
+        // 4) Optional search filter (DataTables global search)
+        $searchValue = $request->input('search.value');
+        if ($searchValue) {
+            $query->where(function($subQ) use ($searchValue) {
+                $subQ->where('clients.name', 'LIKE', "%{$searchValue}%")
+                     ->orWhere('clients.phone', 'LIKE', "%{$searchValue}%")
+                     ->orWhere('user_loans.trx', 'LIKE', "%{$searchValue}%");
+            });
+        }
+
+        // 5) Get the results before sorting/pagination
+        $allResults = $query->get();
+
+        // 6) Sorting
+        $order   = $request->input('order', []);
+        $columns = $request->input('columns', []);
+        if (!empty($order)) {
+            foreach ($order as $o) {
+                $columnIndex = $o['column'];
+                // The columns array might have data fields; adapt to your actual column names
+                $columnName  = $columns[$columnIndex]['data'] ?? 'client_name';
+                $dir         = $o['dir'] === 'asc' ? 'asc' : 'desc';
+
+                $allResults = ($dir === 'asc')
+                    ? $allResults->sortBy($columnName)
+                    : $allResults->sortByDesc($columnName);
+                $allResults = $allResults->values(); // reindex
+            }
+        } else {
+            // Default sort by date ascending
+            $allResults = $allResults->sortBy('installment_date')->values();
+        }
+
+        // 7) Pagination
+        $recordsTotal = $allResults->count();
+        $start  = (int)$request->input('start', 0);
+        $length = (int)$request->input('length', 20);
+        $pagedResults = $allResults->slice($start, $length)->values();
+
+        // 8) Return JSON
+        return response()->json([
+            'draw'            => (int)$request->input('draw'),
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data'            => $pagedResults,
+        ]);
+    }
+
+
+
+    public function tellerDataXX(Request $request)
+    {
+        // 1) Base query for installments that are pending or withbalance
+        //    Left-join on the client table so we can still match a client name/phone
+        //    even if the date is out-of-range, we may handle that with conditions below
+        $query = DB::table('loan_payment_installments')
+            ->join('user_loans', 'user_loans.id', '=', 'loan_payment_installments.loan_id')
+            ->leftJoin('clients', 'clients.id', '=', 'loan_payment_installments.client_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'loan_payment_installments.agent_id')
+            ->select(
+                'loan_payment_installments.id as installment_id',
+                'loan_payment_installments.loan_id',
+                'loan_payment_installments.install_amount',
+                'loan_payment_installments.date as installment_date',
+                'loan_payment_installments.status as installment_status',
+                'loan_payment_installments.client_id',
+                'clients.name as client_name',
+                'clients.phone as client_phone',
+                'clients.credit_balance as client_balance',
+                'user_loans.trx as loan_trx',
+                'user_loans.status as loan_status',
+                DB::raw("CONCAT(agents.f_name, ' ', agents.l_name) as agent_full_name")
+            )
+            ->whereIn('loan_payment_installments.status', ['pending','withbalance']);
+
+        // 2) Filter by date range if provided; otherwise default to today's date
+        if ($request->has('from_date') && $request->filled('from_date') &&
+            $request->has('to_date') && $request->filled('to_date'))
+        {
+            // Parse the user-provided date range
+            $fromDate = Carbon\Carbon::parse($request->from_date)->startOfDay();
+            $toDate   = Carbon\Carbon::parse($request->to_date)->endOfDay();
+        } else {
+            // Default: just "today"
+            $fromDate = Carbon\Carbon::today()->startOfDay();
+            $toDate   = Carbon\Carbon::today()->endOfDay();
+        }
+
+        // If you truly want to show **only** today's installments (plus any results from search),
+        // you can do something like:
+        // ->whereBetween('loan_payment_installments.date', [$fromDate, $toDate])
+        // But if you want "search" to override date (for a client who wasn't supposed to pay today),
+        // you can apply the date condition only if there's no search OR handle logic carefully below.
+
+        $query->whereBetween('loan_payment_installments.date', [$fromDate, $toDate]);
+
+        // 3) Agent filter (auto reload on change)
+        if ($request->filled('agent_id') && $request->agent_id != 'all') {
+            $query->where('loan_payment_installments.agent_id', $request->agent_id);
+        }
+
+        // 4) Global search
+        $searchValue = $request->input('search.value');
+        if ($searchValue) {
+            // You might want to remove or modify the date filter if the user is searching
+            // for a client who wasn't supposed to pay today. For example:
+            //    ->orWhere('loan_payment_installments.date','>',some date)
+            // For simplicity, let's add an OR condition that matches the client name/phone/trx:
+            $query->where(function($sub) use ($searchValue) {
+                $sub->where('clients.name', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('clients.phone', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('user_loans.trx', 'LIKE', "%{$searchValue}%");
+            });
+        }
+
+        // 5) Get results before sorting/pagination
+        $allResults = $query->get();
+
+        // 6) Sorting
+        $order   = $request->input('order', []);
+        $columns = $request->input('columns', []);
+        if (!empty($order)) {
+            foreach ($order as $o) {
+                $colIndex   = $o['column'];
+                $columnName = $columns[$colIndex]['data'] ?? 'installment_date';
+                $dir        = $o['dir'] === 'asc' ? 'asc' : 'desc';
+
+                $allResults = ($dir === 'asc')
+                    ? $allResults->sortBy($columnName)
+                    : $allResults->sortByDesc($columnName);
+
+                $allResults = $allResults->values();
+            }
+        } else {
+            // Default sort: ascending by installment_date
+            $allResults = $allResults->sortBy('installment_date')->values();
+        }
+
+        // 7) Pagination
+        $recordsTotal = $allResults->count();
+        $start  = (int)$request->input('start', 0);
+        $length = (int)$request->input('length', 20);
+        $pagedResults = $allResults->slice($start, $length)->values();
+
+        // Return DataTables JSON
+        return response()->json([
+            'draw'            => (int) $request->input('draw'),
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data'            => $pagedResults,
+        ]);
+    }
+
+
+    public function tellerData(Request $request)
+    {
+        // 1) Build the base query: select installments with a status of 'pending' or 'withbalance'
+        $query = DB::table('loan_payment_installments')
+            ->join('user_loans', 'user_loans.id', '=', 'loan_payment_installments.loan_id')
+            ->leftJoin('clients', 'clients.id', '=', 'loan_payment_installments.client_id')
+            ->leftJoin('users as agents', 'agents.id', '=', 'loan_payment_installments.agent_id')
+            ->select(
+                'loan_payment_installments.id as installment_id',
+                'loan_payment_installments.loan_id',
+                'loan_payment_installments.install_amount',
+                'loan_payment_installments.date as installment_date',
+                'loan_payment_installments.status as installment_status',
+                'loan_payment_installments.client_id',
+                'clients.name as client_name',
+                'clients.phone as client_phone',
+                'clients.credit_balance as client_balance',
+                'user_loans.trx as loan_trx',
+                'user_loans.status as loan_status',
+                DB::raw("CONCAT(agents.f_name, ' ', agents.l_name) as agent_full_name")
+            )
+            ->whereIn('loan_payment_installments.status', ['pending', 'withbalance']);
+
+        // 2) Filter by date range if provided; otherwise default to today's date.
+        if ($request->has('from_date') && $request->filled('from_date') &&
+            $request->has('to_date') && $request->filled('to_date')) {
+            $fromDate = Carbon::parse($request->from_date)->startOfDay();
+            $toDate   = Carbon::parse($request->to_date)->endOfDay();
+        } else {
+            $fromDate = Carbon::today()->startOfDay();
+            $toDate   = Carbon::today()->endOfDay();
+        }
+        $query->whereBetween('loan_payment_installments.date', [$fromDate, $toDate]);
+
+        // 3) Agent filter: if an agent is selected, filter by that agent_id.
+        if ($request->filled('agent_id') && $request->agent_id != 'all') {
+            $query->where('loan_payment_installments.agent_id', $request->agent_id);
+        }
+
+        // 4) Global search filter: search against client name, phone, or loan transaction number.
+        $searchValue = $request->input('search.value');
+        if ($searchValue) {
+            $query->where(function ($sub) use ($searchValue) {
+                $sub->where('clients.name', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('clients.phone', 'LIKE', "%{$searchValue}%")
+                    ->orWhere('user_loans.trx', 'LIKE', "%{$searchValue}%");
+            });
+        }
+
+        // 5) Get all results before applying pagination.
+        $allResults = $query->get();
+
+        // 6) Sorting: if DataTables sends ordering parameters, sort the collection accordingly.
+        $order   = $request->input('order', []);
+        $columns = $request->input('columns', []);
+        if (!empty($order)) {
+            foreach ($order as $o) {
+                $colIndex   = $o['column'];
+                $columnName = $columns[$colIndex]['data'] ?? 'installment_date';
+                $dir        = $o['dir'] === 'asc' ? 'asc' : 'desc';
+                $allResults = ($dir === 'asc')
+                    ? $allResults->sortBy($columnName)
+                    : $allResults->sortByDesc($columnName);
+                $allResults = $allResults->values();
+            }
+        } else {
+            // Default sort: ascending by installment_date
+            $allResults = $allResults->sortBy('installment_date')->values();
+        }
+
+        // 7) Pagination: DataTables sends the start index and length
+        $recordsTotal = $allResults->count();
+        $start  = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 20);
+        $pagedResults = $allResults->slice($start, $length)->values();
+
+        // 8) Return JSON in the required DataTables format.
+        return response()->json([
+            'draw'            => (int) $request->input('draw'),
+            'recordsTotal'    => $recordsTotal,
+            'recordsFiltered' => $recordsTotal,
+            'data'            => $pagedResults,
+        ]);
+    }
+
+
+
+    public function tellerPayLoan2(Request $request)
+    {
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'amount'    => 'required|numeric|min:1',
+            'installment_id' => 'required|exists:loan_payment_installments,id',
+            'note'      => 'nullable|string|max:255',
+        ]);
+
+        $client   = Client::findOrFail($request->client_id);
+        $amount   = $request->input('amount');
+        $installmentId = $request->input('installment_id');
+
+        // 1) Check client credit balance if needed
+        if ($amount > $client->credit_balance) {
+            return response()->json(['error' => 'Payment exceeds client credit balance'], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 2) Find the installment
+            $installment = LoanPaymentInstallment::with('loan')->find($installmentId);
+            if (!$installment || !in_array($installment->status, ['pending','withbalance'])) {
+                return response()->json(['error' => 'Installment is not pending or withbalance'], 400);
+            }
+
+            // 3) Update loan paid_amount
+            $loan = $installment->loan;
+            $loanBalance = $loan->final_amount - $loan->paid_amount;
+            $amountToApply = min($amount, $loanBalance);
+            $loan->paid_amount += $amountToApply;
+
+            // Mark loan fully paid if everything is covered
+            if ($loan->paid_amount >= $loan->final_amount) {
+                $loan->status = 2; // fully paid
+            }
+            $loan->save();
+
+            // 4) Update the installment
+            $installmentDue = $installment->install_amount + $installment->installment_balance;
+            if ($amountToApply >= $installmentDue) {
+                // fully pay this installment
+                $installment->status = 'paid';
+                $installment->installment_balance = 0;
+            } else {
+                // partial
+                $installment->status = 'withbalance';
+                $installment->installment_balance = $installmentDue - $amountToApply;
+            }
+            $installment->save();
+
+            // 5) Create LoanPayment record
+            $loanPayment = LoanPayment::create([
+                'loan_id'        => $loan->id,
+                'client_id'      => $client->id,
+                'agent_id'       => $loan->user_id,  // or teller user_id if relevant
+                'amount'         => $amountToApply,
+                'credit_balance' => $client->credit_balance,
+                'payment_date'   => now(),
+                'note'           => $request->input('note'),
+            ]);
+
+            // 6) Deduct from client’s credit balance
+            $client->credit_balance -= $amountToApply;
+            $client->save();
+
+            DB::commit();
+
+            // Return success
+            return response()->json([
+                'message' => 'Installment paid successfully',
+                'loan_status' => $loan->status,
+                'remaining_balance' => $client->credit_balance,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Teller Pay Loan Error: '.$e->getMessage());
+            return response()->json(['error' => 'Something went wrong.'], 500);
+        }
+    }
+
+
+    public function tellerPayLoan(Request $request)
+    {
+        $request->validate([
+            'client_id'      => 'required|exists:clients,id',
+            'installment_id' => 'required|exists:loan_payment_installments,id',
+            'amount'         => 'required|numeric|min:1',
+            'note'           => 'nullable|string|max:255',
+        ]);
+
+        $client       = Client::findOrFail($request->client_id);
+        $installment  = LoanPaymentInstallment::findOrFail($request->installment_id);
+        $amountToPay  = $request->amount;
+
+        if ($amountToPay > $client->credit_balance) {
+            return response()->json(['error' => 'Amount exceeds client credit balance'], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update loan
+            $installment = LoanPaymentInstallment::findOrFail($request->installment_id);
+            $loan = UserLoan::find($installment->loan_id);
+            if (!$loan) {
+                throw new \Exception('Loan not found for this installment.');
+            }
+
+            // $loan = $installment->loan;
+            $loanBalance = $loan->final_amount - $loan->paid_amount;
+            $actualPay = min($loanBalance, $amountToPay);
+            $loan->paid_amount += $actualPay;
+
+            if ($loan->paid_amount >= $loan->final_amount) {
+                $loan->status = 2; // fully paid
+            }
+            $loan->save();
+
+            // Update installment
+            $dueForThisInstallment = $installment->install_amount + $installment->installment_balance;
+            if ($actualPay >= $dueForThisInstallment) {
+                $installment->status = 'paid';
+                $installment->installment_balance = 0;
+            } else {
+                $installment->status = 'withbalance';
+                $installment->installment_balance = $dueForThisInstallment - $actualPay;
+            }
+            $installment->save();
+
+            // Create a LoanPayment record
+            LoanPayment::create([
+                'loan_id'        => $loan->id,
+                'client_id'      => $client->id,
+                'agent_id'       => $loan->user_id, // or teller user id
+                'amount'         => $actualPay,
+                'credit_balance' => $client->credit_balance,
+                'payment_date'   => now(),
+                'note'           => $request->note,
+            ]);
+
+            // Deduct from client's credit_balance
+            $client->credit_balance -= $actualPay;
+            $client->save();
+
+            DB::commit();
+            return response()->json(['message' => 'Payment processed successfully'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Teller Pay Error: ".$e->getMessage());
+            return response()->json(['error' => 'An error occurred while processing payment'], 500);
+        }
+    }
 
 
 
@@ -79,7 +528,7 @@ class LoanOfferController extends Controller
                 $loan->delete();
                 $loan->loanPaymentInstallments()->delete();
                 // $loan->loanPayments()->delete();
-                
+
             }
 
             return back()->with('success', 'Successfully removed orphaned loans with missing clients.');
@@ -194,7 +643,7 @@ class LoanOfferController extends Controller
     $pagedResults = $allResults->slice($start, $length)->values();
 
     // ========== SUMMARY DATA ==========
-    // We want to show in the blade: 
+    // We want to show in the blade:
     //   - number of unique clients
     //   - total overdue amount
     $uniqueClients           = $allResults->unique('client_id')->count();
@@ -213,11 +662,11 @@ class LoanOfferController extends Controller
     ]);
 }
 
-    
+
     public function loanArrearsDataXX(Request $request)
     {
         $currentHour = Carbon::now()->hour;
-        
+
         // If before 8 AM, consider all running loans as in arrears:
         // otherwise, only those with overdue installments
         $query = DB::table('user_loans')
@@ -233,7 +682,7 @@ class LoanOfferController extends Controller
                 'agents.f_name as agent_first_name',
                 'agents.l_name as agent_last_name'
             );
-    
+
         if ($currentHour >= 8) {
             // After 8 AM: Show only loans with overdue installments
             $query->join('loan_payment_installments', 'loan_payment_installments.loan_id', '=', 'user_loans.id')
@@ -249,7 +698,7 @@ class LoanOfferController extends Controller
             // Before 8 AM: Assume all running loans are in arrears
             // In a real scenario, you may want to still require installments to be due.
             // For simplicity, let's assume total_overdue_installments = total_installment - installments paid (if you store that).
-            // Here, we might need a different logic: 
+            // Here, we might need a different logic:
             // Let's say all installments up to yesterday are overdue:
             $query->join('loan_payment_installments', 'loan_payment_installments.loan_id', '=', 'user_loans.id')
                 ->whereIn('loan_payment_installments.status', ['pending', 'withbalance'])
@@ -261,7 +710,7 @@ class LoanOfferController extends Controller
                 )
                 ->groupBy('user_loans.id', 'clients.id', 'clients.name', 'clients.phone', 'user_loans.trx', 'agents.f_name', 'agents.l_name');
         }
-    
+
         // Searching
         $searchValue = $request->input('search.value');
         if ($searchValue) {
@@ -271,10 +720,10 @@ class LoanOfferController extends Controller
                   ->orWhere('user_loans.trx', 'LIKE', "%{$searchValue}%");
             });
         }
-    
+
         // Count total records (before filtering)
         $recordsTotal = $query->count();
-    
+
         // Ordering
         $order = $request->input('order', []);
         $columns = $request->input('columns', []);
@@ -288,16 +737,16 @@ class LoanOfferController extends Controller
         } else {
             $query->orderBy('client_name', 'asc');
         }
-    
+
         // Pagination (display 20 per page)
         $start = $request->input('start', 0);
         $length = $request->input('length', 20);
         if ($length != -1) {
             $query->skip($start)->take($length);
         }
-    
+
         $arrears = $query->get();
-    
+
         return response()->json([
             'draw' => $request->input('draw'),
             'recordsTotal' => $recordsTotal,
@@ -305,20 +754,20 @@ class LoanOfferController extends Controller
             'data' => $arrears
         ]);
     }
-    
+
 
    public function deleteLoanNow($id)
     {
         try {
             // Find the loan by ID
             $loan = UserLoan::findOrFail($id);
-    
+
             // Delete all loan installments associated with this loan
             LoanPaymentInstallment::where('loan_id', $loan->id)->delete();
-    
+
             // Delete the loan itself
             $loan->delete();
-    
+
             // Redirect back with success message
             return back()->with('success', 'Loan and its installments deleted successfully.');
         } catch (\Exception $e) {
@@ -326,19 +775,19 @@ class LoanOfferController extends Controller
             return back()->withErrors(['error' => 'Failed to delete the loan. Please try again.']);
         }
     }
-    
-    
-  
+
+
+
     public function reversePayment($id)
     {
         // Find the payment by its ID
         $payment = LoanPayment::findOrFail($id);
-    
+
         // Check if the payment is already reversed
         if ($payment->is_reversed) {
             return redirect()->back()->withErrors(['error' => 'This payment has already been reversed.']);
         }
-    
+
         // Find the client and update their credit balance
         $client = $payment->client;
         if ($client) {
@@ -346,27 +795,27 @@ class LoanOfferController extends Controller
             $client->credit_balance += $payment->amount;
             $client->save();
         }
-    
+
         // Mark the payment as reversed
         $payment->is_reversed = true;
         $payment->save();
-    
+
         // Update the installment and loan statuses accordingly
         $loan = $payment->loan;
         $loanInstallment = $loan->loanPaymentInstallments()
                                 ->where('status', 'paid')
                                 ->orderBy('date', 'desc')
                                 ->first();
-        
+
         if ($loanInstallment) {
             $loanInstallment->status = 'pending';
             $loanInstallment->save();
         }
-    
+
         // Adjust the loan's paid amount
         $loan->paid_amount -= $payment->amount;
         $loan->save();
-    
+
         return redirect()->back()->with('success', 'Payment has been reversed successfully.');
     }
 
@@ -386,7 +835,7 @@ class LoanOfferController extends Controller
         }
     }
 
-    
+
     // clients with running loans api
     public function getAgentsClientsWithRunningLoans($agentId)
         {
@@ -397,10 +846,10 @@ class LoanOfferController extends Controller
                 ->where('clients.added_by', $agentId)
                 ->where('user_loans.status', 1) // Adjust 'running' based on your actual status
                 ->get();
-        
+
             // Count the total number of clients with running loans
             $totalClients = $clients->count();
-        
+
             // Check if clients with active loans were found
             if ($clients->isEmpty()) {
                 return response()->json([
@@ -409,7 +858,7 @@ class LoanOfferController extends Controller
                     'total_clients' => 0
                 ], 404);
             }
-        
+
             return response()->json([
                 'status' => true,
                 'data' => $clients,
@@ -418,7 +867,7 @@ class LoanOfferController extends Controller
         }
 
 
-   
+
         // clients with pending loans api
     public function getAgentsClientsWithPendingLoans($agentId)
         {
@@ -429,10 +878,10 @@ class LoanOfferController extends Controller
                 ->where('clients.added_by', $agentId)
                 ->where('user_loans.status', 0) // Adjust 'running' based on your actual status
                 ->get();
-        
+
             // Count the total number of clients with running loans
             $totalClients = $clients->count();
-        
+
             // Check if clients with active loans were found
             if ($clients->isEmpty()) {
                 return response()->json([
@@ -441,18 +890,18 @@ class LoanOfferController extends Controller
                     'total_clients' => 0
                 ], 404);
             }
-        
+
             return response()->json([
                 'status' => true,
                 'data' => $clients,
                 'total_clients' => $totalClients
             ]);
         }
-        
-        
-        
-        
-        
+
+
+
+
+
            // clients with paid loans api
     public function getAgentsClientsWithPaidLoans($agentId)
         {
@@ -463,10 +912,10 @@ class LoanOfferController extends Controller
                 ->where('clients.added_by', $agentId)
                 ->where('user_loans.status', 2) // Adjust 'running' based on your actual status
                 ->get();
-        
+
             // Count the total number of clients with running loans
             $totalClients = $clients->count();
-        
+
             // Check if clients with active loans were found
             if ($clients->isEmpty()) {
                 return response()->json([
@@ -475,26 +924,26 @@ class LoanOfferController extends Controller
                     'total_clients' => 0
                 ], 404);
             }
-        
+
             return response()->json([
                 'status' => true,
                 'data' => $clients,
                 'total_clients' => $totalClients
             ]);
         }
-    
+
     // delete loan
     public function deleteLoan($id)
         {
             // Find the loan by ID
             $loan = UserLoan::findOrFail($id);
-        
+
             // Delete all loan installments associated with this loan
             LoanPaymentInstallment::where('loan_id', $loan->id)->delete();
-        
+
             // Delete the loan itself
             $loan->delete();
-        
+
             // Redirect back with success message
             return back()->with('success', 'Loan and its installments deleted successfully.');
         }
@@ -504,12 +953,12 @@ class LoanOfferController extends Controller
             // Fetch the necessary data
             $client = Client::with('guarantors')->find($id); // Load client with related guarantors
             $loanPlans = LoanPlan::all();
-        
+
             // Check if client or loanPlans is null and handle appropriately
             if (!$client || !$loanPlans) {
                 return redirect()->back()->withErrors(['message' => 'Invalid Client or Loan Plans']);
             }
-        
+
             // Fetch agents who manage clients
             $agents = User::join('clients', 'users.id', '=', 'clients.added_by')
                 ->select(
@@ -521,61 +970,61 @@ class LoanOfferController extends Controller
                 )
                 ->groupBy('users.id', 'users.f_name', 'users.l_name')
                 ->get();
-        
+
             // Return the view with the data
             return view('admin-views.Loans.addClientLoan', compact('client', 'loanPlans', 'agents'));
         }
-    
+
     public function addClientLoanNov($id)
         {
             // Fetch the necessary data
              $client = Client::find($id); // Assuming $loan has a client_id
-            
+
             $loanPlans = LoanPlan::all();
-        
+
             // Check if loan, client, or loanPlan is null and handle appropriately
             if (!$client || !$loanPlans) {
                 return redirect()->back()->withErrors(['message' => 'Invalid Loan, Client, or Plan ID']);
             }
-            
+
             $agents = User::join('clients', 'users.id', '=', 'clients.added_by')
-                    ->select('users.id', 'users.f_name', 'users.l_name', 
+                    ->select('users.id', 'users.f_name', 'users.l_name',
                              \DB::raw('COUNT(clients.id) as client_count'),
                              \DB::raw('SUM(clients.credit_balance) as total_money_out'))
                     ->groupBy('users.id', 'users.f_name', 'users.l_name')
                     ->get();
-                    
-        
+
+
             // Return the view with the data
             return view('admin-views.Loans.addClientLoan', compact( 'client', 'loanPlans', 'agents'));
         }
-        
+
 
 // pay admin loan
     public function adminPayingLoan($id)
     {
         // Fetch client details
         $client = Client::find($id);
-    
+
         if (!$client) {
             return response()->json(['errors' => 'Client not found'], 404);
         }
-    
+
         // Find the running loan associated with this client
         $loan = UserLoan::where('client_id', $id)
             ->where('status', '<>', 2) // Exclude fully paid loans
             ->first();
-    
+
         if (!$loan) {
             return response()->json(['errors' => 'No running loans found for the client'], 404);
         }
-    
-        // Fetch the agent associated with the loan 
+
+        // Fetch the agent associated with the loan
         $agent = User::find($loan->user_id);
-    
+
         // Fetch all payment slots (installments) associated with this loan
         $loanInstallments = LoanPaymentInstallment::where('loan_id', $loan->id)->get();
-    
+
         // Return the view with the fetched data admin-views.Loans.pay-loan?
         return view('admin-views.Loans.pay-loan', compact('client', 'loanInstallments', 'loan', 'agent'));
     }
@@ -583,8 +1032,8 @@ class LoanOfferController extends Controller
 
 // agent pay loan
 
-    
- 
+
+
 
 
 public function payLoan11Nov(Request $request): JsonResponse
@@ -604,7 +1053,7 @@ public function payLoan11Nov(Request $request): JsonResponse
 
     // Start a database transaction to ensure atomicity
     DB::beginTransaction();
-    
+
     try {
         $client = Client::findOrFail($clientId);
 
@@ -843,9 +1292,9 @@ public function payLoan222222222(Request $request): JsonResponse
         // $paymentAmount  = $request->input('payment_amount');
         $advanceAmount = $paymentAmount - $installmentAmount;
         $installmentsCovered = floor($advanceAmount / $installmentAmount);
-   
-   
-    
+
+
+
         if ($installmentsCovered > 0) {
             // Create Loan Advance Record
             $loanAdance =    DB::table('loan_advances');
@@ -860,7 +1309,7 @@ public function payLoan222222222(Request $request): JsonResponse
             $loanAdvance->save();
 
         }
-   
+
 
         // Calculate total amount owed across all loans
         $totalOwed = $loans->sum(function ($loan) {
@@ -925,7 +1374,7 @@ public function payLoan222222222(Request $request): JsonResponse
             }
         }
 
-     
+
         // Update client's credit balance
         $client->credit_balance -= ($paymentAmount - $excessPayment);
 
@@ -1745,7 +2194,7 @@ public function storeClientFine(Request $request, $clientId)
     }
 }
 
-    
+
 
     public function finesList(Client $client)
     {
@@ -1837,7 +2286,7 @@ public function renewLoan(Request $request, $loanId)
         DB::commit();
 
         return redirect()->back();
-        
+
         // response()->json([
         //     'message' => 'Loan renewed successfully.',
         //     'loan' => $loan,
@@ -2143,11 +2592,11 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'payment_dates' => 'nullable|string', // Validate as a string
             'note' => 'nullable|string|max:255',
         ]);
-    
+
         // If payment_dates is present, convert it to an array
         if ($request->has('payment_dates') && !empty($validatedData['payment_dates'])) {
             $validatedData['payment_dates'] = explode(',', $validatedData['payment_dates']);
-            
+
             // Validate the dates after conversion
             foreach ($validatedData['payment_dates'] as $date) {
                 if (!\Carbon\Carbon::createFromFormat('Y-m-d', trim($date))) {
@@ -2157,46 +2606,46 @@ public function payLoan11Nov3(Request $request): JsonResponse
         } else {
             $validatedData['payment_dates'] = [];
         }
-    
+
         // Retrieve the loan and related details
         $loan = UserLoan::findOrFail($loanId);
         $client = Client::find($loan->client_id);
-    
+
         // Calculate the new paid amount and remaining balance
         $newPaidAmount = $loan->paid_amount + $validatedData['payment_amount'];
         $remainingAmount = $loan->final_amount - $newPaidAmount;
-    
+
         // Update the loan payment details
         $loan->paid_amount = $newPaidAmount;
-    
+
         // If the loan is fully paid, update the status
         if ($remainingAmount <= 0) {
             $loan->status = 2; // Fully Paid
         }
-    
+
         // Save the loan
         $loan->save();
-    
+
         // Update client's credit balance
         $client->credit_balance -= $validatedData['payment_amount'];
         $client->save();
-    
+
         // Check and log payment_dates
         if (!empty($validatedData['payment_dates'])) {
             \Log::info('Payment Dates:', $validatedData['payment_dates']);
             $paymentAmountRemaining = $validatedData['payment_amount'];
-    
+
             foreach ($validatedData['payment_dates'] as $paymentDate) {
                 $installment = LoanPaymentInstallment::where('loan_id', $loanId)
                     ->where('date', trim($paymentDate))
                     ->first();
-    
+
                 if ($installment) {
                     $installmentAmount = $installment->install_amount;
                     $installmentBalance = $installment->installment_balance;
-    
+
                     $totalInstallmentAmount = $installmentAmount + $installmentBalance;
-    
+
                     if ($paymentAmountRemaining >= $totalInstallmentAmount) {
                         $installment->status = 'paid';
                         $installment->installment_balance = 0;
@@ -2206,12 +2655,12 @@ public function payLoan11Nov3(Request $request): JsonResponse
                         $installment->installment_balance = $totalInstallmentAmount - $paymentAmountRemaining;
                         $paymentAmountRemaining = 0;
                     }
-    
+
                     $installment->save();
                 } else {
                     \Log::warning("Installment not found for loan_id: $loanId and date: $paymentDate");
                 }
-    
+
                 if ($paymentAmountRemaining <= 0) {
                     break;
                 }
@@ -2219,7 +2668,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
         } else {
             \Log::info('No payment dates provided.');
         }
-    
+
         // Create a record for the payment made
         LoanPayment::create([
             'loan_id'       => $loan->id,
@@ -2230,33 +2679,33 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'payment_date'  => now(), // Current date/time as the payment record date
             'note'          => $validatedData['note'] ?? null,
         ]);
-    
+
         // Provide feedback to the user
         Toastr::success('Loan payment updated successfully');
-    
+
         // Redirect back to the loan details page
         return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
     }
 
 
-   
+
 
 
     public function updateLoanPayment10(Request $request, $loanId)
     {
         // dd($request->all());
-    
+
         // Validate the request inputs
         $validatedData = $request->validate([
             'payment_amount' => 'required|numeric|min:1',
             'payment_dates' => 'nullable|string', // Validate as a string
             'note' => 'nullable|string|max:255',
         ]);
-    
+
         // If payment_dates is present, convert it to an array
         if ($request->has('payment_dates') && !empty($validatedData['payment_dates'])) {
             $validatedData['payment_dates'] = explode(',', $validatedData['payment_dates']);
-            
+
             // Validate the dates after conversion
             foreach ($validatedData['payment_dates'] as $date) {
                 if (!\Carbon\Carbon::createFromFormat('Y-m-d', trim($date))) {
@@ -2266,32 +2715,32 @@ public function payLoan11Nov3(Request $request): JsonResponse
         } else {
             $validatedData['payment_dates'] = [];
         }
-    
+
         // Retrieve the loan and related details
         $loan = UserLoan::findOrFail($loanId);
         $client = Client::find($loan->client_id);
-    
-    
+
+
         // Calculate the new paid amount and remaining balance
         $newPaidAmount = $loan->paid_amount + $validatedData['payment_amount'];
         $remainingAmount = $loan->final_amount - $newPaidAmount;
-    
+
         // Update the loan payment details
         $loan->paid_amount = $newPaidAmount;
-    
+
         // If the loan is fully paid, update the status
         if ($remainingAmount <= 0) {
             $loan->status = 2; // Fully Paid
         }
-    
+
         // Save the loan
         $loan->save();
-        
-        
+
+
          // Update client's credit balance
         $client->credit_balance -= $validatedData['payment_amount'];
         $client->save();
-    
+
         // Check and log payment_dates
         if (!empty($validatedData['payment_dates'])) {
             \Log::info('Payment Dates:', $validatedData['payment_dates']);
@@ -2309,7 +2758,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
         } else {
             \Log::info('No payment dates provided.');
         }
-    
+
         // Create a record for the payment made
         LoanPayment::create([
             'loan_id'       => $loan->id,
@@ -2318,16 +2767,16 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'amount'        => $validatedData['payment_amount'], // Original payment amount
             'payment_date'  => now(), // Current date/time as the payment record date
             'note'          => $validatedData['note'] ?? null,
-            
+
         ]);
-    
+
         // Provide feedback to the user
         Toastr::success('Loan payment updated successfully');
-    
+
         // Redirect back to the loan details page
         // return redirect()->route('admin.loans.show', $loanId);
             return redirect()->route('admin.loans.show', $loanId)->with('success', 'Payment processed successfully!');
-    
+
     }
 
 
@@ -2347,14 +2796,14 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'note' => 'nullable|string|max:255', // Adding note validation if provided
             'taken_date'  => 'nullable|date',
         ]);
-    
+
         // Calculate per installment and final amount
         $per_installment = ($validatedData['amount'] * 1.2) / $validatedData['installment_interval'];
         $final_amount = $validatedData['amount'] * 1.2;
-    
+
         // Calculate remaining amount
         $remaining_amount = $final_amount - ($validatedData['paid_amount'] ?? 0);
-    
+
         // Create a new UserLoan instance
         $loan = new UserLoan();
         $loan->user_id = $validatedData['agent_id'];
@@ -2373,7 +2822,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
         $loan->next_installment_date = $validatedData['next_installment_date'] ?? null;
         $loan->client_id = $validatedData['client_id']; // Assign the client ID
         $loan->save(); // Save the loan to the database
-    
+
         // Check if paid amount is greater than 0 to create a LoanPayment record
         if ($validatedData['paid_amount'] > 0) {
             // Create a record for the payment made
@@ -2386,11 +2835,11 @@ public function payLoan11Nov3(Request $request): JsonResponse
                 'note' => $validatedData['note'] ?? null, // Include optional note if provided
             ]);
         }
-    
+
         // Redirect back with success message
         return redirect()->route('admin.loan-pendingLoans')->with('success', 'Loan added successfully for client ');
     }
-    
+
      public function storeClientLoan(Request $request)
         {
             // Validate the request data
@@ -2405,19 +2854,19 @@ public function payLoan11Nov3(Request $request): JsonResponse
                 'note' => 'nullable|string|max:255', // Adding note validation if provided
                 'taken_date' => 'nullable|date',
             ]);
-        
+
             // Fetch the loan plan based on the plan_id
             $loanPlan = LoanPlan::findOrFail($validatedData['plan_id']); // Fetch the loan plan details
-        
+
             // Dynamic calculation based on the loan plan details
             $per_installment = ($validatedData['amount'] * 1.2) / $validatedData['installment_interval'];
 
             $per_installment = ($validatedData['amount'] * (1 + ($loanPlan->installment_value / 100))) / $validatedData['installment_interval'];
             $final_amount = $validatedData['amount'] * (1 + ($loanPlan->installment_value / 100));
-        
+
             // Calculate the remaining amount after the paid amount
             $remaining_amount = $final_amount - ($validatedData['paid_amount'] ?? 0);
-        
+
             // Create a new UserLoan instance
             $loan = new UserLoan();
             $loan->user_id = $validatedData['agent_id'];
@@ -2436,7 +2885,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
             $loan->next_installment_date = $validatedData['next_installment_date'] ?? null;
             $loan->client_id = $validatedData['client_id']; // Assign the client ID
             $loan->save(); // Save the loan to the database
-        
+
             // Check if paid amount is greater than 0 to create a LoanPayment record
             if ($validatedData['paid_amount'] > 0) {
                 // Create a record for the payment made
@@ -2449,12 +2898,12 @@ public function payLoan11Nov3(Request $request): JsonResponse
                     'note' => $validatedData['note'] ?? null, // Include optional note if provided
                 ]);
             }
-        
+
             // Redirect back with success message
             return redirect()->route('admin.loan-pendingLoans')->with('success', 'Loan added successfully for client ');
         }
 
-    
+
     public function createLoan(Request $request): JsonResponse
     {
         // Validate the request data
@@ -2463,30 +2912,30 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'client_id' => 'required|exists:clients,id',
             'trx' => 'nullable|string|max:40',
             'amount' => 'required|numeric|min:0',
-             
+
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 403);
         }
-    
+
         // Fetch the client and agent
         $client = Client::find($request->client_id);
         if (!$client) {
             return response()->json(['message' => 'Client not found'], 404);
         }
-    
+
         // $agent = User::findOrFail($request->user_id)->where('is_active', 1)->get();
         $agent = User::where('id', $request->user_id)->where('is_active', 1)->firstOrFail();
 
-    
+
         // Calculate per installment and final amount
         $per_installment = ($request->amount * 1.2) / $request->installment_interval;
         $final_amount = $request->amount * 1.2;
-    
+
         // Calculate remaining amount
         $remaining_amount = $final_amount - ($request->paid_amount ?? 0);
-    
+
         // Create a new UserLoan instance
         $loan = new UserLoan();
         $loan->user_id = $request->user_id;
@@ -2504,7 +2953,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
         $loan->next_installment_date = $request->next_installment_date ?? null;
         $loan->client_id = $request->client_id; // Assign the client ID
         $loan->save();  // Save the loan to the database
-    
+
         // Create a new agent loan record
         $agentLoan = new AgentLoan();
         $agentLoan->user_id = $request->user_id;
@@ -2512,8 +2961,8 @@ public function payLoan11Nov3(Request $request): JsonResponse
         $agentLoan->loan_amount = $request->amount;
         $agentLoan->final_loan_amount = $final_amount;
         $agentLoan->save();
-        
-        
+
+
          // Check if paid amount is greater than 0 to create a LoanPayment record
         if ($request->paid_amount > 0) {
             // Create a record for the payment made
@@ -2526,33 +2975,33 @@ public function payLoan11Nov3(Request $request): JsonResponse
                 // 'note' => $validatedData['note'] ?? null, // Include optional note if provided
             ]);
         }
-    
+
         return response()->json(response_formatter(DEFAULT_200, $loan, null), 200);
     }
-        
-        
-    
+
+
+
     function generateUniqueTrx()
         {
             do {
                 // Generate a random transaction ID
                 $trx = 'TRX' . Str::random(8);
-                
+
                 // Check if the trx already exists in the UserLoan table
                 $exists = UserLoan::where('trx', $trx)->exists();
             } while ($exists);
-        
+
             return $trx;
         }
-    
+
     public function editLoan($id) {
             // Find the loan by ID
             $loan = UserLoan::findOrFail($id);
-        
+
             // Retrieve the related client and loan plan
             $client = Client::find($loan->client_id);
             $loanPlan = LoanPlan::find($loan->plan_id);
-        
+
             // Pass the loan, client, and loan plan data to the view
             return view('admin-views.Loans.edit', compact('loan', 'client', 'loanPlan'));
         }
@@ -2563,7 +3012,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
          $loanPlan = LoanPlan::find($loan->plan_id);
          return view('admin-views.Loans.edit', compact('loan', 'client', 'loanPlan'));
     }
-    
+
     public function saveLoanEdit2(Request $request)
         {
             // Validate the request
@@ -2575,9 +3024,9 @@ public function payLoan11Nov3(Request $request): JsonResponse
                 'total_installment' => 'required|integer|min:1',
                 // Add more validation rules as needed based on your loan fields
             ]);
-            
+
             $loan = UserLoan::findOrFail($request->id);
-        
+
             // Check if the loan is in a pending or running state (status 0 or 1)
             if ($loan->status != 0 && $loan->status != 1) {
                 return response()->json([
@@ -2585,30 +3034,30 @@ public function payLoan11Nov3(Request $request): JsonResponse
                     'message' => 'Loan cannot be edited in its current state.',
                 ]);
             }
-        
+
             // Update the loan details
             $loan->amount = $request->amount;
             $loan->per_installment = $request->per_installment;
             $loan->installment_interval = $request->installment_interval;
             $loan->total_installment = $request->installment_interval;
             // Update other loan fields as needed
-        
+
             // Recalculate final_amount if necessary (based on your interest calculation logic)
-        
+
             // Save the changes
             $loan->save();
-        
+
             return this-> showLoan( $loan->id);
         }
-        
-        
-        
-        
+
+
+
+
         public function saveLoanEdit(Request $request)
             {
-                
+
                 $loan = UserLoan::findOrFail($request->id);
-            
+
                 // Check if the loan is in a pending or running state (status 0 or 1)
                 if ($loan->status != 0 && $loan->status != 1) {
                     return response()->json([
@@ -2616,7 +3065,7 @@ public function payLoan11Nov3(Request $request): JsonResponse
                         'message' => 'Loan cannot be edited in its current state.',
                     ]);
                 }
-            
+
                 // Update the loan details
                 $loan->amount = $request->amount;
                 $loan->per_installment = $request->per_installment;
@@ -2625,34 +3074,34 @@ public function payLoan11Nov3(Request $request): JsonResponse
                 $loan->final_amount = $loan->per_installment * $loan->total_installment;
                 $loan->processing_fee = $request->processing_fee;
 
-               
+
                 // Save the changes
                 $loan->save();
-            
+
                 // Redirect to the loan details view after saving the changes
                 return $this->showLoan($loan->id);
             }
 
-        
+
      public function showLoan($id)
     {
         // Fetch the loan by ID
         $loan = UserLoan::findOrFail($id);
-    
+
         // Retrieve client details using the client_id
         $client = Client::find($loan->client_id);
-        
-        $agent = User::find($loan->user_id); 
-    
+
+        $agent = User::find($loan->user_id);
+
         // Retrieve loan plan details using the plan_id
         $loanPlan = LoanPlan::find($loan->plan_id);
-        
+
         // CLIENT guarantors
         $clientGuarantors =   Guarantor::where('client_id', $loan->client_id)->get();
         $loanSlots =  LoanPaymentInstallment::where('client_id', $loan->client_id)->get();
 
 
-    
+
         // Pass the loan, client, and loan plan data to the view
         return view('admin-views.Loans.view', [
             'loan' => $loan,
@@ -2663,16 +3112,16 @@ public function payLoan11Nov3(Request $request): JsonResponse
             'loanSlots' => $loanSlots
         ]);
     }
-    
-    
+
+
     // on loan approval, create payment slots/plan
     public function approveLoan(Request $request)
         {
-           
+
             $loan = UserLoan::findOrFail($request->id);
             $client = Client::find($loan->client_id);
             $clientGuarantors =   Guarantor::where('client_id', $loan->client_id)->get();
-        
+
             // Check if the loan is in a pending state (status 0)
             if ($loan->status != 0) {
                 return response()->json([
@@ -2680,21 +3129,21 @@ public function payLoan11Nov3(Request $request): JsonResponse
                     'message' => 'Loan is not in a pending state.',
                 ]);
             }
-            
-            
-             // Check if the client has no guarantors 
+
+
+             // Check if the client has no guarantors
             if ($clientGuarantors->isEmpty()) {
                     //   return response()->warning('Client has no guarantors.'); // Assuming you have a 'warning' response helper
                     Toastr::error(translate('Client has no guarantors.'));
                   return back();
             }
-        
-            // Check if client credit balance is greater than 0 
+
+            // Check if client credit balance is greater than 0
             if ($client->credit_balance != 0) { // Assuming you have a 'credit_balance' column on your Client model
                 Toastr::error(translate('Client has a positive credit balance.'));
                 return back();
             }
-             
+
             if ($loan->status != 0) {
                 return response()->json([
                     'success' => false,
@@ -2711,40 +3160,40 @@ public function payLoan11Nov3(Request $request): JsonResponse
             $loan->due_date = $loanTakenDate->copy()->addDays($loan->installment_interval);
 
             // set the client credit balance to the add the loan
-        
+
             // Set the next installment date (assuming today is the approval date)
             $loan->next_installment_date = $loanTakenDate->copy()->addDays($loan->installment_interval);
-        
+
             // Save the changes
             $loan->save();
-            
-            
+
+
            // Set the next installment date (assuming today is the approval date)
             $loan->next_installment_date = $loanTakenDate->copy()->addDays($loan->installment_interval);
             $loan->save();
-        
+
             // Update the client's credit balance by adding the loan amount
             $client->credit_balance = isset($client->credit_balance) ? $client->credit_balance + $loan->final_amount : $loan->final_amount;
             $client->save();
 
-            
+
             // Generate payment installments
             $this->createPaymentInstallments($loan);
-        
+
             return back();
         }
-     
-     
-         
+
+
+
     // payment slots created after the loan is approved
     protected function createPaymentInsta(UserLoan $loan)
         {
             $installmentAmount = $loan->per_installment;
             $totalInstallments = $loan->total_installment;
-        
+
             for ($i = 0; $i < $totalInstallments; $i++) {
                 $installmentDate = now()->addDays($i); // Add days incrementally for daily installments
-        
+
                 LoanPaymentInstallment::create([
                     'loan_id' => $loan->id,
                     'agent_id' => $loan->user_id,
@@ -2784,22 +3233,22 @@ protected function createPaymentInstallments(UserLoan $loan)
     }
 }
 
-     
-   
-     
-     
-     
-     
-     
-     
-     
-   
-    
+
+
+
+
+
+
+
+
+
+
+
    public function getClientQr(Request $request): JsonResponse
 {
     // Retrieve a single client record
     $customer = Client::where('id', $request->client_id)->first();
-    
+
     // Check if the customer exists
     if ($customer) {
         $data = [];
@@ -2807,10 +3256,10 @@ protected function createPaymentInstallments(UserLoan $loan)
         $data['phone'] = $customer->phone;
         $data['clientid'] = $customer->id;
         $data['image'] = $customer->image;
-        
-        $qr = Helpers::get_qrcode_client($data); 
-        
-        
+
+        $qr = Helpers::get_qrcode_client($data);
+
+
 
         // Return the response with customer data
         return response()->json([
@@ -2824,9 +3273,9 @@ protected function createPaymentInstallments(UserLoan $loan)
     }
 }
 
-    
-    
-    // pay loan 
+
+
+    // pay loan
   public function payLoan3(Request $request): JsonResponse
 {
     $validator = Validator::make($request->all(), [
@@ -2998,7 +3447,7 @@ public function payLoan33(Request $request): JsonResponse
             do {
                 $transactionId = 'abROi' . mt_rand(1000000000, 9999999999);
             } while (PaymentTransaction::where('transaction_id', $transactionId)->exists());
-        
+
             return $transactionId;
         }
 
@@ -3202,48 +3651,48 @@ public function payLoan111e(Request $request): JsonResponse
         'message' => 'Loan installment(s) paid successfully'], 200);
 }
 
-    
-    
-    
+
+
+
    public function todaysLoanInstallments(): JsonResponse
     {
         // Get today's date in Y-m-d format
         $today = now()->toDateString();
-        
+
         // Query LoanPaymentInstallment for today's date and pending status todaysLoanInstallments
     $installments = LoanPaymentInstallment::where('date', $today)
         ->where('status', 'pending')
         ->get();
-        
+
         // Check if there are any installments for today
         if ($installments->isEmpty()) {
             return response()->json(['message' => 'No installments due today'], 404);
         }
-    
+
         // Return the installments
         return response()->json(response_formatter(DEFAULT_200, $installments, null), 200);
-        
-        
-        
+
+
+
     }
-    
-    
+
+
     // today schedule
     public function todaysSchedule2(Request $request): JsonResponse
     {
         // Get today's date in Y-m-d format
         $today = now()->toDateString();
-        
+
         $agentId = $request->input('agent_id');
-        
+
         // Query LoanPaymentInstallment for today's date and pending status todaysLoanInstallments
         $installments = LoanPaymentInstallment::where('agent_id', $agentId)
             ->where('date', $today)
             ->get();
-    
-    
-           
-                    
+
+
+
+
             // Prepare the response data with client details
     $responseData = [];
 
@@ -3267,37 +3716,37 @@ public function payLoan111e(Request $request): JsonResponse
             'updated_at' => $installment->updated_at,
         ];
     }
-    
+
      return response()->json([
         'response_code' => 'default_200',
         'message' => 'Successfully fetched data',
         'DataContent' => $responseData
     ], 200);
-    
+
      // Return the installments with client details
     // return response()->json(response_formatter(DEFAULT_200, $responseData, null), 200);
     }
-    
+
     public function todaysSchedule(Request $request): JsonResponse
         {
             // Get the start and end date-time for today using getDateRange2
             [$startDate, $endDate] = $this->getDateRange2('daily');
-            
+
             $agentId = $request->input('agent_id');
-            
+
             // Query LoanPaymentInstallment for today's date range
             $installments = LoanPaymentInstallment::where('agent_id', $agentId)
                 ->whereBetween('date', [$startDate, $endDate])
                 ->get();
-        
+
             // Prepare the response data with client details
             $responseData = [];
-        
+
             foreach ($installments as $installment) {
                 // Get client details for each installment
                 $client = Client::find($installment->client_id);
                 $clientBalance = $client ? $client->credit_balance : null;
-        
+
                 $responseData[] = [
                     'id' => $installment->id,
                     'loan_id' => $installment->loan_id,
@@ -3313,14 +3762,14 @@ public function payLoan111e(Request $request): JsonResponse
                     'updated_at' => $installment->updated_at,
                 ];
             }
-            
+
             return response()->json([
                 'response_code' => 'default_200',
                 'message' => 'Successfully fetched data',
                 'DataContent' => $responseData
             ], 200);
         }
-        
+
         /**
          * Get the start and end date-time based on the period.
          *
@@ -3330,7 +3779,7 @@ public function payLoan111e(Request $request): JsonResponse
         private function getDateRange2($period)
         {
             $now = Carbon::now();
-        
+
             switch ($period) {
                 case 'weekly':
                     return [
@@ -3360,11 +3809,11 @@ public function payLoan111e(Request $request): JsonResponse
             }
         }
 
-    
+
     // private function getDateRange2($period)
     //     {
     //         $now = Carbon::now();
-        
+
     //         switch ($period) {
     //             case 'weekly':
     //                 return [
@@ -3393,18 +3842,18 @@ public function payLoan111e(Request $request): JsonResponse
     //                 }
     //         }
     //     }
-        
-    
-    
-    // collected 
-    
-    
+
+
+
+    // collected
+
+
     // daily total for agent for today
   public function totalAmountForAgentOnDate(Request $request): JsonResponse
 {
     // Get today's date and time at 11 am
     $startOfBusinessDay = now()->setTime(11, 0, 0);
-    
+
     // Get the agent_id from the request
     $agentId = $request->input('agent_id');
 
@@ -3412,28 +3861,28 @@ public function payLoan111e(Request $request): JsonResponse
     $totalAmount = LoanPaymentInstallment::where('agent_id', $agentId)
                     ->whereDate('date', now()->toDateString()) // Ensure only the date part is considered
                     ->sum('install_amount');
-                    
+
     $totalAmountCollected2 = LoanPaymentInstallment::where('agent_id', $agentId)
                     ->whereDate('date', now()->toDateString()) // Ensure only the date part is considered
                     ->where('status', 'paid')
                     ->sum('install_amount');
-                    
-                    
-                    
-                    
+
+
+
+
     // Set the custom time window (4:00 PM to 3:59 PM the next day)
         $startDate = now()->subDay()->setTime(16, 0, 0); // Yesterday at 4:00 PM
         $endDate = now()->setTime(15, 59, 59); // Today at 3:59 PM
-        
-        
+
+
         $totalAmountCollected = LoanPayment::where('agent_id', $agentId)
                                 ->whereBetween('created_at', [$startDate, $endDate])
                                 ->where('is_reversed', false) // Only non-reversed payments
                                 ->sum('amount');
-                    
-                    
-                    
-                    
+
+
+
+
 
     // Return the total amount the agent needs to collect
     return response()->json([
@@ -3445,13 +3894,13 @@ public function payLoan111e(Request $request): JsonResponse
 }
 
 
-    
+
     public function totalAmountForAgentOnDate1000(Request $request): JsonResponse
     {
         // Get today's date in Y-m-d format
         $today = now()->toDateString();
-        
-   
+
+
 
     // Get the agent_id and date from the request
     $agentId = $request->input('agent_id');
@@ -3461,7 +3910,7 @@ public function payLoan111e(Request $request): JsonResponse
     $totalAmount = LoanPaymentInstallment::where('agent_id', $agentId)
                     ->where('date', $today)
                     ->sum('install_amount');
-                    
+
     $totalAmountCollected = LoanPaymentInstallment::where('agent_id', $agentId)
                     ->where('date', $today)
                     ->where('status', 'paid')
@@ -3477,20 +3926,20 @@ public function payLoan111e(Request $request): JsonResponse
 }
 
 
-    
+
      // loan Plans
      public function allplans(){
         //  get all the available plans
         $loanPlans = LoanPlan::all();
-        
+
          return view('admin-views.Loans.plan.index', compact('loanPlans'));
      }
-    // add 
+    // add
     public function addplan(){
          return view('admin-views.Loans.plan.create');
     }
-    
-     // create 
+
+     // create
     public function createplan(Request $request){
         $request->validate([
             'plan_name' => 'required|string|max:255',
@@ -3503,31 +3952,31 @@ public function payLoan111e(Request $request): JsonResponse
         ]);
 
         LoanPlan::create($request->all());
-        
+
         return view('admin-views.Loans.plan.create');
     }
-    
-    
-    // edit 
+
+
+    // edit
        public function editplan($id){
          $loanPlan = LoanPlan::findOrFail($id);
          return view('admin-views.Loans.plan.edit',compact('loanPlan'));
     }
-     
-     
-    //  delet paln 
+
+
+    //  delet paln
     public function destroyNow($id)
     {
-         
+
         $loanPlan = LoanPlan::findOrFail($id);
         $loanPlan->delete();
 
         return redirect()->route('admin.loan-plans')->with('success', 'Loan Plan deleted successfully');
     }
-    
-    
-    
-    
+
+
+
+
      public function updateNow(Request $request, $id)
     {
         $request->validate([
@@ -3545,8 +3994,8 @@ public function payLoan111e(Request $request): JsonResponse
 
         return redirect()->route('admin.loan-plans')->with('success', 'Loan Plan updated successfully');
     }
-     
-     
+
+
      // all loans
      public function all_loans(){
         //  get all the available plans
@@ -3562,20 +4011,20 @@ public function payLoan111e(Request $request): JsonResponse
         }
  $totalLoans = $query->count();
         $loans = $query->paginate(20);
-        
+
          return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans', 'totalLoans'));
      }
-     
-        
-        
-        
+
+
+
+
     // paid Loans
-        
+
     public function paidLoans()
      {
                 $pageTitle      = 'Paid Loans';
-        
-        
+
+
                 if(request()->search){
                     $query          = UserLoan::paid()->where('trx', request()->search);
                     $emptyMessage   = 'No Data Found';
@@ -3585,10 +4034,10 @@ public function payLoan111e(Request $request): JsonResponse
                 }
          $totalLoans = $query->count();
                 $loans = $query->paginate(20);
-        
+
                 return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans', 'totalLoans'));
             }
-     
+
 public function dueLoans()
 {
     $pageTitle = 'Due Loans';
@@ -3614,14 +4063,14 @@ public function dueLoans()
 }
 
 
-     
-     
-            
+
+
+
     // pending loans
     public function pendingLoans()
     {
                 $pageTitle      = 'Pending Loans';
-        
+
                 if(request()->search){
                     $query          = UserLoan::pending()->where('trx', request()->search);
                     $emptyMessage   = 'No Data Found';
@@ -3631,12 +4080,12 @@ public function dueLoans()
                 }
         $totalLoans = $query->count();
                 $loans = $query->paginate(20);
-              
-        
+
+
                 return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans', 'totalLoans'));
             }
 
-        
+
     public function pendingLoans10()
 {
     $pageTitle = 'Pending Loans';
@@ -3659,14 +4108,14 @@ public function dueLoans()
     return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans'));
 }
 
-    
-    
-    
+
+
+
     // rejected loans
     public function rejectedLoans()
             {
                 $pageTitle      = 'Rejected Loans';
-        
+
                 if(request()->search){
                     $query          = UserLoan::rejected()->where('trx', request()->search);
                     $emptyMessage   = 'No Data Found';
@@ -3676,18 +4125,18 @@ public function dueLoans()
                 }
         $totalLoans = $query->count();
                 $loans = $query->paginate(20);
-        
+
                 return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans', 'totalLoans'));
             }
 
-    
 
-    
-    // running loans 
+
+
+    // running loans
     public function runningLoans()
     {
                 $pageTitle      = 'Running Loans';
-        
+
                 if(request()->search){
                     $query          = UserLoan::running()->where('trx', request()->search);
                     $emptyMessage   = 'No Data Found';
@@ -3697,23 +4146,23 @@ public function dueLoans()
                 }
         $totalLoans = $query->count();
                 $loans = $query->paginate(20);
-        
+
                 return view('admin-views.Loans.index', compact('pageTitle', 'emptyMessage', 'loans', 'totalLoans'));
             }
 
-    
-    
-    
+
+
+
     public function loanplansindex()
     {
-        
+
         $loanPlans = LoanPlan::all();
         return response()->json($loanPlans);
     }
 
-    
-    
-    
+
+
+
 
 
 
@@ -3723,7 +4172,7 @@ public function dueLoans()
     {
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|exists:users,id',
-            
+
             'trx' => 'nullable|string|max:40',
             'amount' => 'required|numeric|min:0',
             'per_installment' => 'required|numeric|min:0',
@@ -3747,7 +4196,7 @@ public function dueLoans()
             return response()->json(['message' => 'User not found'], 404);
         }
 
-      
+
 
         $loan = new UserLoan();
         $loan->user_id = $request->user_id;
@@ -3766,8 +4215,8 @@ public function dueLoans()
         $loan->next_installment_date = $request->next_installment_date ?? null;
         $loan->client_id = $request->client_id;
         $loan->save();
-        
-        
+
+
         // Create a new agent loan record
                 $agentLoan = new AgentLoan();
                 $agentLoan->user_id = $request->user_id;
@@ -3775,24 +4224,24 @@ public function dueLoans()
                 $agentLoan->loan_amount = $request->amount;
                 $agentLoan->final_loan_amount = $request->final_amount;
                 $agentLoan->save();
-        
-        // $client = Client::where('client_id', $request->client_id)
-        
-        
-        
-      
 
-        
+        // $client = Client::where('client_id', $request->client_id)
+
+
+
+
+
+
         return response()->json(response_formatter(DEFAULT_200, $loan, null), 200);
     }
-    
-    
-    
-    
-    
-   
 
-    
+
+
+
+
+
+
+
     // client loans
     public function clientLoans(Request $request): JsonResponse
     {
@@ -3800,12 +4249,12 @@ public function dueLoans()
         return response()->json(response_formatter(DEFAULT_200, $loans, null), 200);
     }
 
-// user loans 
+// user loans
    public function userLoansList(Request $request): JsonResponse
     {
         $loans = UserLoan::where('user_id', $request -> id)->get();
         return response()->json(response_formatter(DEFAULT_200, $loans, null), 200);
-        
+
     }
 
 
@@ -3846,8 +4295,8 @@ public function dueLoans()
         $loanOffer->delete();
         return response()->json(['message' => 'Loan offer deleted successfully']);
     }
-    
-    
-    // 
+
+
+    //
 }
 

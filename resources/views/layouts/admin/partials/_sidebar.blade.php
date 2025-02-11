@@ -47,8 +47,8 @@
                             <i class="tio-chart-bar-2 nav-icon"></i>
                             <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('Reports') }}</span>
                         </a>
-                        
-                        
+
+
 
                         <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/report*') ? 'block' : 'none' }}">
                             <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/report') ? 'active' : '' }}">
@@ -91,22 +91,22 @@
                                 <ul class="js-navbar-vertical-aside-submenu nav nav-sub" style="display: {{ Request::is('admin/loans*') ? 'block' : 'none' }}">
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-analysis') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan.analysis.index') }}" title="{{ translate('Loans Analysis') }}">
-                                            <span class="text-truncate">Loans Analysis</span>
+                                            <span class="text-truncate">Analysis</span>
                                         </a>
                                     </li>
 
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-arrears.index') }}" title="{{ translate('Arrears Loans') }}">
-                                            <span class="text-truncate">{{ translate('Loans Arrears') }}</span>
+                                            <span class="text-truncate">{{ translate('Arrears') }}</span>
                                         </a>
                                     </li>
 
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('/admin/loan-arrears') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-advances.index') }}" title="{{ translate('Arrears Loans') }}">
-                                            <span class="text-truncate">{{ translate('Loans Advances') }}</span>
+                                            <span class="text-truncate">{{ translate('Advances') }}</span>
                                         </a>
                                     </li>
-                                    
+
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/pendingLoans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-pendingLoans') }}" title="{{ translate('Pending Loans') }}">
                                             <span class="text-truncate">{{ translate('Pending Loans') }}</span>
@@ -117,21 +117,21 @@
                                             <span class="text-truncate">{{ translate('Running Loans') }}</span>
                                         </a>
                                     </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/dueloans') ? 'active' : '' }}">
+                                    {{-- <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/dueloans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loans-due') }}" title="{{ translate('Due Loans') }}">
                                             <span class="text-truncate">{{ translate('Due Loans') }}</span>
                                         </a>
-                                    </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/paidLoans') ? 'active' : '' }}">
+                                    </li> --}}
+                                    {{-- <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/paidLoans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.paidLoans') }}" title="{{ translate('Paid Loans') }}">
                                             <span class="text-truncate">{{ translate('Paid Loans') }}</span>
                                         </a>
-                                    </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/rejectedLoans') ? 'active' : '' }}">
+                                    </li> --}}
+                                    {{-- <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/rejectedLoans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.loan-loanrejectedLoans') }}" title="{{ translate('Rejected Loans') }}">
                                             <span class="text-truncate">{{ translate('Rejected Loans') }}</span>
                                         </a>
-                                    </li>
+                                    </li> --}}
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/all-loans') ? 'active' : '' }}">
                                         <a class="nav-link" href="{{ route('admin.all-loans') }}" title="{{ translate('All Loans') }}">
                                             <span class="text-truncate">{{ translate('All Loans') }}</span>
@@ -145,7 +145,7 @@
                                 </ul>
                             </li>
                             <!-- End Loans -->
-                    
+
 
                     <!-- Transactions -->
                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/transactions*') ? 'active' : '' }}">

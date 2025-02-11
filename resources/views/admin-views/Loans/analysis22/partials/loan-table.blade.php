@@ -4,6 +4,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    
                     <th>Client</th>
                     <th>Phone</th>
                     <th>Field</th>
@@ -13,12 +14,14 @@
                     <th>Status</th>
                     <th>Taken Date</th>
                     <th>Due Date</th>
+                    {{-- <th>Disbursed At</th> --}}
                 </tr>
             </thead>
             <tbody>
                 @foreach($loans as $loan)
                     <tr>
                         <td>{{ $loan->id }}</td>
+                        
                         <td>{{ optional($loan->client)->name ?? 'N/A' }}</td>
                         <td>{{ optional($loan->client)->phone }}</td>
                         <td>{{ optional($loan->agent)->f_name ?? 'N/A' }}</td>
@@ -37,12 +40,9 @@
                                 }
                             @endphp
                         </td>
-                        <td>
-                            {{ $loan->loan_taken_date ? \Carbon\Carbon::parse($loan->loan_taken_date)->format('Y-m-d') : 'N/A' }}
-                        </td>
-                        <td>
-                            {{ $loan->due_date ? \Carbon\Carbon::parse($loan->due_date)->format('Y-m-d') : 'N/A' }}
-                        </td>
+                        <td>{{ $loan->loan_taken_date ? $loan->loan_taken_date->format('Y-m-d') : 'N/A' }}</td>
+                        <td>{{ $loan->due_date ? $loan->due_date->format('Y-m-d') : 'N/A' }}</td>
+                        {{-- <td>{{ $loan->disbursed_at ? $loan->disbursed_at->format('Y-m-d') : 'N/A' }}</td> --}}
                     </tr>
                 @endforeach
             </tbody>

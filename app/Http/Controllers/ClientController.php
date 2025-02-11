@@ -46,7 +46,7 @@ use Brian2694\Toastr\Facades\Toastr;
 
 class ClientController extends Controller
 {
-    
+
     public function agentDash(Request $request)
         {
             // Validate the input period and dates
@@ -55,10 +55,10 @@ class ClientController extends Controller
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
             ]);
-        
+
             // Get the reporting period ('daily', 'weekly', 'monthly', 'custom'), defaulting to 'daily'
             $period = $request->input('period', 'daily');
-        
+
             // Fetch the start and end dates based on the selected period or custom dates
             if ($period === 'custom') {
                 $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
@@ -66,62 +66,62 @@ class ClientController extends Controller
             } else {
                 [$startDate, $endDate] = $this->getDateRange2($period);
             }
-        
+
             // Total Installments Collected in the Date Range
             $totalInstallmentsCollected = LoanPaymentInstallment::whereBetween('date', [$startDate, $endDate])
                 ->where('status', 'paid')
                 ->count();
-        
+
             // Total Amount Collected in the Date Range
             $totalAmountCollected = LoanPaymentInstallment::whereBetween('date', [$startDate, $endDate])
                 ->where('status', 'paid')
                 ->sum('install_amount');
-        
+
             // Total Overdue Installments as of End Date
             $totalOverdueInstallments = LoanPaymentInstallment::where('status', 'overdue')
                 ->where('date', '<=', $endDate)
                 ->count();
-        
+
             // New Clients Added in the Date Range
             $newClients = Client::whereBetween('created_at', [$startDate, $endDate])->count();
-        
+
             // Agent Financial Summary: Get total amount and transaction count per agent
             $agentTransactions = LoanPayment::with('agent:id,f_name,l_name')
                 ->select('agent_id', DB::raw('SUM(amount) as total_amount'), DB::raw('COUNT(id) as transaction_count'))
                 ->whereBetween('payment_date', [$startDate, $endDate])
                 ->groupBy('agent_id')
                 ->get();
-        
+
             // Real-Time Installment Payments: Get the latest 50 payments with agent and client details
             $installmentPayments = LoanPayment::with(['agent:id,f_name,l_name', 'client:id,name'])
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->orderBy('created_at', 'desc')
                 ->limit(50)
                 ->get();
-        
+
             // Loans Overview: Get counts and collections
             $totalActiveLoans = UserLoan::where('status', 1)->count();
             $activeLoans = UserLoan::where('status', 1)->with('client:id,name')->get();
-        
+
             $totalPaidLoans = UserLoan::where('status', 2)->count();
             $paidLoans = UserLoan::where('status', 2)->with('client:id,name')->get();
-        
+
             $totalOverdueLoans = UserLoan::whereHas('loanPaymentInstallments', function ($query) {
                 $query->where('status', 'overdue');
             })->count();
             $overdueLoans = UserLoan::whereHas('loanPaymentInstallments', function ($query) {
                 $query->where('status', 'overdue');
             })->with('client:id,name')->get();
-        
+
             // Client Overview: Get the total number of clients and the collection
             $totalClients = Client::count();
             $clients = Client::with(['userLoans' => function ($query) {
                 $query->select('client_id', 'status', 'amount', 'next_installment_date');
             }])->get();
-        
+
             // Agent Performance Data
             $agentReportData = $this->getAgentReportData($startDate, $endDate);
-        
+
             // Pass data to the view
             return view('admin-views.reports.agent-report-today', compact(
                 'totalInstallmentsCollected',
@@ -144,7 +144,7 @@ class ClientController extends Controller
                 'period'
             ));
         }
-        
+
 
         public function getTransactionHistory(Client $client)
 {
@@ -168,7 +168,7 @@ class ClientController extends Controller
         private function getDateRange2($period)
         {
             $now = Carbon::now();
-        
+
             switch ($period) {
                 case 'weekly':
                     return [
@@ -197,7 +197,7 @@ class ClientController extends Controller
                     }
             }
         }
-        
+
         /**
          * Get agent performance data for the specified date range.
          *
@@ -208,7 +208,7 @@ class ClientController extends Controller
         private function getAgentReportData($startDate, $endDate)
         {
             $agents = User::where('type', 2)->where('is_active', 1)->with('clients')->get(); // Assuming type 2 indicates agents
-        
+
             $agentPerformance = [];
             $totals = [
                 'total_clients' => 0,
@@ -217,25 +217,25 @@ class ClientController extends Controller
                 'total_amount_collected' => 0,
                 'total_performance' => 0,
             ];
-        
+
             foreach ($agents as $agent) {
                 $clientCount = $agent->clients->count();
-        
+
                 $totalMoneyOut = UserLoan::where('user_id', $agent->id)
                     ->where('status', 1)
                     ->sum('amount');
-        
+
                 // Expected daily is the sum of 'per_installment' amounts from 'user_loans' for this agent's clients
                 $expectedDaily = UserLoan::where('user_id', $agent->id)
                     ->where('status', 1)
                     ->sum('per_installment');
-        
+
                 $amountCollected = LoanPayment::where('agent_id', $agent->id)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->sum('amount');
-        
+
                 $performancePercentage = $expectedDaily > 0 ? ($amountCollected / $expectedDaily) * 100 : 0;
-        
+
                 $agentPerformance[] = [
                     'agent' => $agent,
                     'client_count' => $clientCount,
@@ -244,43 +244,43 @@ class ClientController extends Controller
                     'amount_collected' => $amountCollected,
                     'performance_percentage' => $performancePercentage,
                 ];
-        
+
                 $totals['total_clients'] += $clientCount;
                 $totals['total_money_out'] += $totalMoneyOut;
                 $totals['total_expected_daily'] += $expectedDaily;
                 $totals['total_amount_collected'] += $amountCollected;
             }
-        
+
             $totals['total_performance'] = $totals['total_expected_daily'] > 0
                 ? ($totals['total_amount_collected'] / $totals['total_expected_daily']) * 100
                 : 0;
-        
+
             return [
                 'agentPerformance' => $agentPerformance,
                 'totals' => $totals,
             ];
         }
 
-    
+
     public function exportClientsToExcel(Request $request)
     {
         return Excel::download(new ClientsExport($request->all()), 'clients.xlsx');
     }
 
-    
+
     public function getClientsWhoPaidToday(Request $request): JsonResponse
         {
             // Get today's date
             $today = Carbon::today();
-        
+
             // Determine the number of results per page (default to 20 if not specified)
             $perPage = $request->input('per_page', 20);
-        
+
             // Fetch clients who have made payments today, using pagination
             $clients = Client::whereHas('loanPayments', function ($query) use ($today) {
                 $query->whereDate('created_at', $today);
             })->paginate($perPage);
-        
+
             // Return the clients as a JSON response
             return response()->json([
                 'status' => 'success',
@@ -291,7 +291,7 @@ class ClientController extends Controller
                 'total' => $clients->total(),
                 'last_page' => $clients->lastPage(),
             ], 200);
-        } 
+        }
 
 
 
@@ -300,20 +300,20 @@ class ClientController extends Controller
 
 
 
-    
+
    public function getClientsWhoHaventPaidToday(Request $request): JsonResponse
     {
         // Get today's date
         $today = Carbon::today();
-    
+
         // Set the pagination limit, defaulting to 20 if not provided
         $perPage = $request->input('per_page', 20);
-    
+
         // Get clients who haven't made any payments today with pagination
         $clients = Client::whereDoesntHave('loanPayments', function ($query) use ($today) {
             $query->whereDate('created_at', $today);
         })->paginate($perPage);
-    
+
         // Return the paginated clients as a JSON response
         return response()->json([
             'status' => 'success',
@@ -325,7 +325,7 @@ class ClientController extends Controller
             'last_page' => $clients->lastPage(),
         ], 200);
     }
-    
+
     /**
      * Generate the Agents Report.
      *
@@ -409,7 +409,7 @@ class ClientController extends Controller
             'totals' => $totals,
         ];
     }
-    
+
      public function agentTransactions(Request $request)
     {
         // Fetch date range from request or default to the current month
@@ -417,57 +417,57 @@ class ClientController extends Controller
             'start' => Carbon::now()->startOfMonth(),  // Default start of the current month
             'end' => Carbon::now()->endOfMonth()       // Default end of the current month
         ]);
-    
+
         // Ensure valid start and end dates
         $startDate = $dateRange['start'] ?? Carbon::now()->startOfMonth();
         $endDate = $dateRange['end'] ?? Carbon::now()->endOfMonth();
-    
+
         // Retrieve additional filters from request
         $agentId = $request->get('agent_id');         // Filter for agent transactions
         $clientId = $request->get('client_id');       // Filter by client
         $status = $request->get('status');            // Filter by payment status (paid, pending, etc.)
         $minAmount = $request->get('min_amount');     // Filter by minimum payment amount
         $maxAmount = $request->get('max_amount');     // Filter by maximum payment amount
-    
+
         // Query LoanPayment model, eager load agent and client relationships
         $query = LoanPayment::with(['agent', 'client'])
             ->whereBetween('created_at', [$startDate, $endDate]);  // Date range filter
-    
+
         // Apply filters based on user input
         if ($agentId) {
             $query->where('agent_id', $agentId);  // Filter by specific agent
         }
-    
+
         if ($clientId) {
             $query->where('client_id', $clientId);  // Filter by specific client
         }
-    
+
         if ($status) {
             $query->where('status', $status);  // Filter by payment status
         }
-    
+
         if ($minAmount) {
             $query->where('amount', '>=', $minAmount);  // Minimum amount filter
         }
-    
+
         if ($maxAmount) {
             $query->where('amount', '<=', $maxAmount);  // Maximum amount filter
         }
-    
+
         // Fetch results with pagination (20 per page)
         $installmentPayments = $query->orderBy('created_at', 'desc')->paginate(60);
-    
+
         // Fetch agent performance data (date range or additional logic from Sanaa Finance SaaS)
         $agentReportData = $this->getAgentPerformance($dateRange);
-    
+
         // Fetch agents for filter dropdowns
         $agents = User::all();  // Assuming you have an Agent model
-    
+
         // Return filtered data to the view
         return view('admin-views.reports.real-Time-Payments', compact('installmentPayments', 'agentReportData', 'agents'));
     }
 
-    
+
     public function agentTransactionsLast(Request $request)
         {
             // Fetch date range from request or default to the current month
@@ -475,11 +475,11 @@ class ClientController extends Controller
                 'start' => Carbon::now()->startOfMonth(),  // Default start of the current month
                 'end' => Carbon::now()->endOfMonth()       // Default end of the current month
             ]);
-        
+
             // Ensure valid start and end dates
             $startDate = $dateRange['start'] ?? Carbon::now()->startOfMonth();
             $endDate = $dateRange['end'] ?? Carbon::now()->endOfMonth();
-        
+
             // Retrieve additional filters from request
             $agentId = $request->get('agent_id');         // Filter for agent transactions
             $clientId = $request->get('client_id');       // Filter by client
@@ -487,56 +487,56 @@ class ClientController extends Controller
             $branchId = $request->get('branch_id');       // Filter by branch ID (as Sanaa operates with branches)
             $minAmount = $request->get('min_amount');     // Filter by minimum payment amount
             $maxAmount = $request->get('max_amount');     // Filter by maximum payment amount
-        
+
             // Query LoanPayment model, eager load agent, client, and branch relationships
             $query = LoanPayment::with(['agent', 'client', 'loan.branch'])
                 ->whereBetween('created_at', [$startDate, $endDate]);  // Date range filter
-        
+
             // Apply filters based on user input
             if ($agentId) {
                 $query->where('agent_id', $agentId);  // Filter by specific agent
             }
-        
+
             if ($clientId) {
                 $query->where('client_id', $clientId);  // Filter by specific client
             }
-        
+
             if ($branchId) {
                 $query->whereHas('loan.branch', function($q) use ($branchId) {
                     $q->where('id', $branchId);  // Filter by specific branch
                 });
             }
-        
+
             if ($status) {
                 $query->where('status', $status);  // Filter by payment status
             }
-        
+
             if ($minAmount) {
                 $query->where('amount', '>=', $minAmount);  // Minimum amount filter
             }
-        
+
             if ($maxAmount) {
                 $query->where('amount', '<=', $maxAmount);  // Maximum amount filter
             }
-        
+
             // Fetch results with pagination (20 per page)
             $installmentPayments = $query->orderBy('created_at', 'desc')->paginate(20);
-        
+
             // Fetch agent performance data (date range or additional logic from Sanaa Finance SaaS)
             $agentReportData = $this->getAgentPerformance($dateRange);
-        
+
             // Fetch agents and branches for filter dropdowns
             $agents = User::all();  // Assuming you have an Agent model
             $branches = Branch::all();  // Assuming you have a Branch model
-        
+
             // Return filtered data to the view
             return view('admin-views.reports.real-Time-Payments', compact('installmentPayments', 'agentReportData', 'agents', 'branches'));
         }
 
-    
-   
-   
-   
+
+
+
+
         public function agentTransactionsX(Request $request)
 {
     // Fetch date range from request or set default values (start and end of current month)
@@ -599,7 +599,7 @@ class ClientController extends Controller
 }
 
 
-    
+
   public function agentTransactions100(Request $request)
 {
     // Fetch date range from request or set default values
@@ -648,69 +648,69 @@ class ClientController extends Controller
         }
         return ['start' => $startDate, 'end' => $endDate];
     }
-    
+
      public function agentDashX(Request $request)
         {
             $today = Carbon::today();
             $period = $request->input('period', 'daily'); // Options: daily, weekly, monthly
             $dateRange = $this->getDateRange($period);
             $agentReportData = $this->getAgentPerformance($dateRange);
-        
-        
+
+
             // Total Installments Collected Today
             $totalInstallmentsCollectedToday = LoanPaymentInstallment::whereDate('date', $today)
                 ->where('status', 'paid')
                 ->count();
-        
+
             // Total Amount Collected Today
             $totalAmountCollectedToday = LoanPaymentInstallment::whereDate('date', $today)
                 ->where('status', 'paid')
                 ->sum('install_amount');
-        
+
             // Total Overdue Installments
             $totalOverdueInstallments = LoanPaymentInstallment::whereDate('date', '<', $today)
                 ->where('status', 'overdue')
                 ->count();
-        
+
             // Total Active Loans (Running loans)
             $totalActiveLoans = UserLoan::where('status', 1)->count();
-        
+
             // New Clients Added Today
             $newClientsToday = Client::whereDate('created_at', $today)->count();
-        
+
             // Agent Financial Summary: Eager load agent details
             $agentTransactions = LoanPayment::with('agent') // Load agent details
                 ->select('agent_id', DB::raw('SUM(amount) as total_amount'), DB::raw('COUNT(id) as transaction_count'))
                 ->whereDate('payment_date', $today)
                 ->groupBy('agent_id')
                 ->get();
-        
-        
-        
+
+
+
         // Real-Time Installment Payments: Eager load agent and client details using LoanPayment model
             $installmentPayments = LoanPayment::with(['agent', 'client']) // Load both agent and client details
                 ->orderBy('created_at', 'desc') // Order by the latest created records
                 ->take(50) // Limit to 50 records
                 ->get();
-        
-        
+
+
             // Loans Overview: Active, Paid, and Overdue Loans Managed by Agents
             $activeLoans = UserLoan::where('status', 1)->get();  // Active loans
             $paidLoans = UserLoan::where('status', 2)->get();    // Paid loans
-        
+
             // Fetch loans with overdue installments
             $overdueLoans = UserLoan::whereHas('loanPaymentInstallments', function ($query) {
                 $query->where('status', 'overdue');
             })->get();
-        
+
             // Client Overview: Clients assigned to each agent
             $clients = Client::with(['userLoans' => function ($query) {
                 $query->select('client_id', 'status', 'amount', 'next_installment_date');
             }])->get();
-        
+
             return view('admin-views.reports.agent-report-today', compact(
                 'totalInstallmentsCollectedToday', 'totalAmountCollectedToday', 'totalOverdueInstallments',
-                'totalActiveLoans', 'newClientsToday', 'agentTransactions', 'installmentPayments', 
+                'totalActiveLoans', 'newClientsToday', 'agentTransactions', 'installmentPayments',
                 'activeLoans', 'paidLoans', 'overdueLoans', 'clients','agentReportData'
             ));
         }
@@ -828,7 +828,7 @@ class ClientController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
     }
-    
+
     public function search(Request $request)
     {
         // Get query parameters
@@ -836,40 +836,40 @@ class ClientController extends Controller
         $sortBy = $request->input('sortBy', 'id'); // Default to sorting by 'id'
         $sortOrder = $request->input('sortOrder', 'asc'); // Default to ascending order
         $perPage = $request->input('perPage', 10); // Default to 10 results per page
-    
+
         // Build the query
         $query = Client::query();
-    
+
         // Search by name or ID (modify this based on your database columns)
         if ($searchQuery) {
             $query->where('name', 'like', '%' . $searchQuery . '%')
                   ->orWhere('id', 'like', '%' . $searchQuery . '%');
         }
-    
+
         // Add filters (if any specific filtering is needed, e.g., by status)
         if ($request->has('status')) {
             $query->where('status', $request->input('status'));
         }
-    
+
         // Apply sorting
         $query->orderBy($sortBy, $sortOrder);
-    
+
         // Paginate the results
         $clients = $query->paginate($perPage);
-    
+
         // Return the paginated result in JSON format
         return response()->json($clients);
     }
 
-  
-    
-    
-
-    
-  
 
 
-    
+
+
+
+
+
+
+
     public function agentReport()
             {
                 // Fetch agents with client counts and total money out
@@ -883,22 +883,22 @@ class ClientController extends Controller
                     )
                     ->groupBy('users.id', 'users.f_name', 'users.l_name')
                     ->get();
-            
+
                 // Initialize totals
                 $totalClients = 0;
                 $totalMoneyOut = 0;
                 $totalAmountCollected = 0;
                 $totalExpectedDaily = 0;
-            
+
                 foreach ($agents as $agent) {
                     // Calculate expected daily amount from total money out
                     $agent->expected_daily = $agent->total_money_out / 30;
-            
+
                     // Calculate amount collected from cleared payment slots
                     $agent->amount_collected = LoanPaymentInstallment::where('agent_id', $agent->id)
                         ->where('status', 'cleared')
                         ->sum('install_amount');
-            
+
                     // Calculate performance percentage
                     $expectedTotal = $agent->expected_daily * 30; // This equals total_money_out
                     if ($expectedTotal > 0) {
@@ -906,21 +906,21 @@ class ClientController extends Controller
                     } else {
                         $agent->performance_percentage = 0;
                     }
-            
+
                     // Update totals
                     $totalClients += $agent->client_count;
                     $totalMoneyOut += $agent->total_money_out;
                     $totalAmountCollected += $agent->amount_collected;
                     $totalExpectedDaily += $agent->expected_daily; // Sum expected daily across all agents
                 }
-            
+
                 // Calculate total performance percentage
                 if ($totalMoneyOut > 0) {
                     $totalPerformance = ($totalAmountCollected / $totalMoneyOut) * 100;
                 } else {
                     $totalPerformance = 0;
                 }
-            
+
                 // Prepare totals array for the view
                 $totals = [
                     'total_clients' => $totalClients,
@@ -929,10 +929,10 @@ class ClientController extends Controller
                     'total_expected_daily' => $totalExpectedDaily, // Add this line
                     'total_performance' => $totalPerformance,
                 ];
-            
+
                 return view('admin-views.reports.agent-report', compact('agents', 'totals'));
             }
-   
+
 //   printCard
   public function printCard($clientId)
 {
@@ -948,24 +948,24 @@ class ClientController extends Controller
     $customPaper = array(0,0,317.74,199.8);
     $pdf = PDF::loadHTML($combinedHtml)->setPaper($customPaper)->setWarnings(false);
 
-    return $pdf->download('card_' . $client->id . '.pdf'); 
+    return $pdf->download('card_' . $client->id . '.pdf');
 }
-  
-  
-  
-  
 
-   
+
+
+
+
+
     public function edit($id)
     {
         // Fetch the client by ID
         $client = Client::findOrFail($id);
         $users = User::all();
-    
+
         // Pass the client data to the view
         return view('admin-views.clients.edit', compact('client', 'users'));
     }
-    
+
 
 public function createClient(Request $request)
 {
@@ -980,7 +980,7 @@ public function createClient(Request $request)
 }
 
   public function store(Request $request)
-{ 
+{
     // dd($request->all());
     // Add 'branch_id' to validation rules to ensure the client is linked to a branch.
     $validatedData = $request->validate([
@@ -1024,15 +1024,15 @@ public function createClient(Request $request)
 
 
   // add guarantors
-  
-  
+
+
   public function addClientGuarantor(Request $request): JsonResponse
         {
             try {
                 // Handle file uploads
                 $photoPath = $request->file('photo') ? $request->file('photo')->store('guarantors/photos', 'public') : null;
                 $nationalIdPhotoPath = $request->file('national_id_photo') ? $request->file('national_id_photo')->store('guarantors/national_id_photos', 'public') : null;
-        
+
                 // Create the guarantor
                 $guarantor = Guarantor::create([
                     'name' => $request->input('name'),
@@ -1046,7 +1046,7 @@ public function createClient(Request $request)
                     'added_by' => $request->input('added_by'),
                     'client_id' => $request->input('client_id'),
                 ]);
-        
+
                 // Return success response with guarantor data
                 return response()->json(response_formatter(DEFAULT_200, $guarantor, null), 200);
             } catch (\Exception $e) {
@@ -1055,13 +1055,13 @@ public function createClient(Request $request)
             }
         }
 
-  
-  
-  
+
+
+
     public function addClientGuarantor10(Request $request): JsonResponse
     {
-  
-       
+
+
         $photoPath = $request->file('photo') ? $request->file('photo')->store('guarantors/photos', 'public') : null;
         $nationalIdPhotoPath = $request->file('national_id_photo') ? $request->file('national_id_photo')->store('guarantors/national_id_photos', 'public') : null;
 
@@ -1081,80 +1081,80 @@ public function createClient(Request $request)
 
     public function agentClientDetails_old($agentId)
                 {
-                   
+
                     $queryParams = [];
                     $agent =        User::findOrFail($agentId);
                     // $clients =      Client::where('added_by', $agentId)->get();
                     $clientsQuery = Client::where('added_by', $agentId)->get(); // SanaaCard::query();
-                    
-                    
+
+
                     // get client details
                     $clientsData = [];
                     $clients = $clientsQuery->latest()->paginate(Helpers::pagination_limit())->appends($queryParams);
-                
+
                     // Loop through the clients and collect the required data
                     foreach ($clients as $client) {
-                        $clientGuarantorName = Guarantor::find($client->client_id);  
-                        
+                        $clientGuarantorName = Guarantor::find($client->client_id);
+
                         $clientsData[] = [
                             'client' => $client,
                             'client_name' => $clientName ? $clientName->name : 'N/A',
                         ];
                     }
-                
+
                     // Calculate total credit balance and total loan balance
                     $totalCreditBalance = $clients->sum('credit_balance');
                     $totalLoanBalance = $clients->sum('loan_balance');
-                
+
                     return view('admin-views.reports.agentClientDetails', compact('agent', 'clients', 'totalCreditBalance', 'totalLoanBalance'));
-        
+
           }
-          
-          
+
+
     public function agentClientDetails($agentId)
             {
                 $queryParams = [];
                 $agent = User::findOrFail($agentId);
-            
-                $clientsQuery = Client::where('added_by', $agentId); 
+
+                $clientsQuery = Client::where('added_by', $agentId);
                 $clients = $clientsQuery->latest()->paginate(Helpers::pagination_limit())->appends($queryParams);
-            
+
                 $clientsData = [];
-            
+
                 foreach ($clients as $client) {
-                    // The main issue is here: You're trying to find a Guarantor by the client_id, 
-                    // but client_id in the Guarantor model likely refers to the Client it's associated with. 
+                    // The main issue is here: You're trying to find a Guarantor by the client_id,
+                    // but client_id in the Guarantor model likely refers to the Client it's associated with.
                     // You need to find the Guarantor based on the Client's id.
-                    $clientGuarantor = Guarantor::where('client_id', $client->id)->first(); 
-            
+                    $clientGuarantor = Guarantor::where('client_id', $client->id)->first();
+
                     $clientsData[] = [
                         'client' => $client,
                         // Use the guarantor's name if found, otherwise 'N/A'
-                        'guarantor_name' => $clientGuarantor ? $clientGuarantor->name : 'N/A', 
+                        'guarantor_name' => $clientGuarantor ? $clientGuarantor->name : 'N/A',
                     ];
                 }
-            
+
                 $totalCreditBalance = $clients->sum('credit_balance');
                 $totalLoanBalance = $clients->sum('loan_balance');
-            
-                return view('admin-views.reports.agentClientDetails', compact('agent', 'clients', 'totalCreditBalance', 'totalLoanBalance', 'clientsData')); 
+
+                return view('admin-views.reports.agentClientDetails', compact('agent', 'clients', 'totalCreditBalance', 'totalLoanBalance', 'clientsData'));
             }
-  
+
   public function show13($id)
     {
         // Fetch the client by ID
         $client = Client::findOrFail($id);
-        
+
         $clientLoanPayment = LoanPayment::where();
 
-        
-    
+
+
         // Pass the client data to the view
         return view('admin-views.clients.profile', compact('client'));
     }
-  
-  
-  
+
+
+
   // In your ClientController
     public function show($id)
 {
@@ -1198,25 +1198,25 @@ function generateUniquePAN() {
         for ($i = 0; $i < 4; $i++) {
             $pan .= str_pad(random_int(0, 5959), 4, '0', STR_PAD_LEFT);
         }
-        
+
         // Check if the generated PAN already exists in the database
         $panExists = SanaaCard::where('pan', $pan)->exists();
     } while ($panExists); // Repeat if the PAN is not unique
-    
+
     return $pan;
 }
 
 
 
-function generateSanaaCardData() 
+function generateSanaaCardData()
     {
         // Fetch clients from the database
         $clients = Client::all();
-    
+
         foreach ($clients as $client) {
             // Generate a unique PAN (Primary Account Number) - typically a 16-digit number
             $pan = $this-> generateUniquePAN();
-    
+
             // Generate other card fields
             $cvv = str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT); // 3-digit CVV
             $iin = '123456'; // Issuer Identification Number (you may want to use your own logic)
@@ -1224,7 +1224,7 @@ function generateSanaaCardData()
             $issueDate = now()->toDateString(); // Today's date as the issue date
             $balance = '0'; // Random balance for example
             $pinCode = bcrypt('1234'); // Example: bcrypt the PIN for security
-            
+
             // Create a new SanaaCard entry
             SanaaCard::create([
                 'client_id' => $client->id,
@@ -1247,7 +1247,7 @@ function generateSanaaCardData()
             ]);
         }
     }
-    
+
    // Add guarantors
    public function addClientGuarantorWeb(Request $request, $client_id)
         {
@@ -1263,11 +1263,11 @@ function generateSanaaCardData()
                 'national_id_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'added_by' => 'nullable|exists:users,id',
             ]);
-        
+
             // Handle file uploads
             $photoPath = $request->file('photo') ? $request->file('photo')->store('guarantors/photos', 'public') : null;
             $nationalIdPhotoPath = $request->file('national_id_photo') ? $request->file('national_id_photo')->store('guarantors/national_id_photos', 'public') : null;
-        
+
             // Create guarantor
             Guarantor::create([
                 'name' => $validatedData['name'],
@@ -1281,7 +1281,7 @@ function generateSanaaCardData()
                 'added_by' => $validatedData['added_by'] ?? auth()->user()->id,
                 'client_id' => $client_id,
             ]);
-        
+
             // Redirect with success message
             return redirect()->route('admin.clients.edit', $client_id)->with('success', 'Guarantor added successfully.');
         }
@@ -1304,11 +1304,11 @@ function generateSanaaCardData()
             'added_by' => 'nullable|string|max:255',
             'next_of_kin' => 'nullable|string|max:255',
         ]);
-    
+
         // Find the client by ID and update with validated data
         $client = Client::findOrFail($id);
         $client->update($validatedData);
-    
+
         // Redirect to clients list with a success message
         return redirect()->route('admin.allclients')->with('success', 'Client updated successfully.');
     }
@@ -1316,7 +1316,7 @@ function generateSanaaCardData()
 
     public function index(): JsonResponse
     {
-        
+
         $clients = Client::all();
         // return response()->json($clients);
         $customers = $customers->latest()->customer()->paginate(Helpers::pagination_limit())->appends($queryParams);
@@ -1327,7 +1327,7 @@ function generateSanaaCardData()
 
 
     // searchClient
-   
+
     public function searchClient(Request $request)
 {
     $query = $request->get('q');
@@ -1346,26 +1346,26 @@ function generateSanaaCardData()
 }
 
 
-    
+
     // agents clints
-      //  get client profile 
+      //  get client profile
    public function getAgentClient(Request $request): JsonResponse
     {
         $clients = Client::where('added_by', $request -> agentId)->get();
         return response()->json(response_formatter(DEFAULT_200, $clients, null), 200);
-        
+
     }
-    
+
     public function clientsCards(Request $request): Factory|View|Application
         {
             $pageTitle = 'All Clients Cards';
             $emptyMessage = 'No clients found';
-        
+
             $queryParams = [];
             $search = $request->get('search');
-            
+
             $clientsQuery = SanaaCard::query();
-            
+
             if ($search) {
                 $key = explode(' ', $search);
                 $clientsQuery->where(function ($q) use ($key) {
@@ -1378,36 +1378,36 @@ function generateSanaaCardData()
                 });
                 $queryParams['search'] = $search;
             }
-        
+
             $clientsCardData = [];
             $clients = $clientsQuery->latest()->paginate(Helpers::pagination_limit())->appends($queryParams);
-        
+
             // Loop through the clients and collect the required data
             foreach ($clients as $client) {
                 $clientName = Client::find($client->client_id); // Fetch the user who added this client
-                
+
                 $clientsCardData[] = [
                     'client' => $client,
                     'client_name' => $clientName ? $clientName->name : 'N/A',
                 ];
             }
-        
+
             return view('admin-views.clients.clients-cards', compact('clientsCardData', 'search', 'pageTitle', 'emptyMessage', 'clients'));
         }
 
-    
+
     // all clients
     public function clients10(Request $request): Factory|View|Application
     {
         $pageTitle = 'All Clients';
         $emptyMessage = 'No clients found';
-    
+
         $queryParams = [];
         $search = $request->get('search');
-    
+
         // Start building the query
         $clientsQuery = Client::query();
-    
+
         // Apply search filters
         if (!empty($search)) {
             $key = explode(' ', $search);
@@ -1421,19 +1421,19 @@ function generateSanaaCardData()
             });
             $queryParams['search'] = $search;
         }
-    
+
         // Fetch agents with UUIDs
         $agents = User::where('type', 2) // Adjus  t 'type' as per your application
             ->select('id', 'f_name', 'l_name')
             ->get();
-    
+
         // Filter by agent using UUID
         $agentUuid = $request->get('agent_id');
         if (!empty($agentUuid) && $agentUuid != 'all') {
             $clientsQuery->where('added_by', $agentUuid);
             $queryParams['agent_id'] = $agentUuid;
         }
-    
+
         // Filter by payment status
         $paymentStatus = $request->get('payment_status');
         if (!empty($paymentStatus) && $paymentStatus != 'all') {
@@ -1448,18 +1448,18 @@ function generateSanaaCardData()
             }
             $queryParams['payment_status'] = $paymentStatus;
         }
-    
+
         // Filter by client status
         $status = $request->get('status');
         if (!empty($status) && $status != 'all') {
             $clientsQuery->where('status', $status);
             $queryParams['status'] = $status;
         }
-    
+
         // Date range filter
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
-    
+
         if (!empty($fromDate) && !empty($toDate)) {
             $fromDateParsed = Carbon::parse($fromDate)->startOfDay();
             $toDateParsed = Carbon::parse($toDate)->endOfDay();
@@ -1467,32 +1467,32 @@ function generateSanaaCardData()
             $queryParams['from_date'] = $fromDate;
             $queryParams['to_date'] = $toDate;
         }
-    
+
         // Export to Excel
         if ($request->has('export') && $request->export == 'excel') {
             $clients = $clientsQuery->get();
             return Excel::download(new ClientsExport($clients), 'clients.xlsx');
         }
-    
+
         // Paginate the results
         $clients = $clientsQuery->latest()->paginate(20)->appends($queryParams);
-    
+
         // Collect data for the view
         $clientsData = [];
         foreach ($clients as $client) {
             $agent = $client->addedBy; // Use the relationship
             $addedByName = $agent ? $agent->f_name . ' ' . $agent->l_name : 'N/A';
-    
+
             $hasUnpaidLoans = $client->userLoans()->where('status', '!=', 2)->exists();
             $paymentStatusLabel = $hasUnpaidLoans ? 'Unpaid' : 'Paid';
-    
+
             $clientsData[] = [
                 'client' => $client,
                 'added_by_name' => $addedByName,
                 'payment_status' => $paymentStatusLabel,
             ];
         }
-    
+
         return view('admin-views.clients.allClients', compact(
             'clientsData',
             'search',
@@ -1509,11 +1509,11 @@ function generateSanaaCardData()
     {
         $pageTitle = 'All Clients';
         $emptyMessage = 'No clients found';
-    
+
         $queryParams = [];
         $search = $request->get('search');
         $clientsQuery = Client::query();
-    
+
         // Apply search filters
         if (!empty($search)) {
             $key = explode(' ', $search);
@@ -1527,19 +1527,19 @@ function generateSanaaCardData()
             });
             $queryParams['search'] = $search;
         }
-    
+
         // Fetch agents
         $agents = User::where('type', 2)
             ->select('id', 'f_name', 'l_name')
             ->get();
-    
+
         // Filter by agent using ID
         $agentId = $request->get('agent_id');
         if (!empty($agentId) && $agentId != 'all') {
             $clientsQuery->where('added_by', $agentId);
             $queryParams['agent_id'] = $agentId;
         }
-    
+
         // Filter by payment status
         $paymentStatus = $request->get('payment_status');
         if (!empty($paymentStatus) && $paymentStatus != 'all') {
@@ -1554,18 +1554,18 @@ function generateSanaaCardData()
             }
             $queryParams['payment_status'] = $paymentStatus;
         }
-    
+
         // Filter by client status
         $status = $request->get('status');
         if (!empty($status) && $status != 'all') {
             $clientsQuery->where('status', $status);
             $queryParams['status'] = $status;
         }
-    
+
         // Date range filter
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
-    
+
         if (!empty($fromDate) && !empty($toDate)) {
             $fromDateParsed = Carbon::parse($fromDate)->startOfDay();
             $toDateParsed = Carbon::parse($toDate)->endOfDay();
@@ -1573,33 +1573,33 @@ function generateSanaaCardData()
             $queryParams['from_date'] = $fromDate;
             $queryParams['to_date'] = $toDate;
         }
-    
+
         // Export to Excel
         if ($request->has('export') && $request->export == 'excel') {
             $clients = $clientsQuery->get();
             return Excel::download(new ClientsExport($clients), 'clients.xlsx');
         }
-    
+
         // Paginate the results
         $page = $request->get('page', 1);
         $clients = $clientsQuery->latest()->paginate(20, ['*'], 'page', $page)->appends($queryParams);
-    
+
         // Collect data for the view
         $clientsData = [];
         foreach ($clients as $client) {
             $agent = $client->addedBy; // Ensure 'addedBy' relationship is defined
             $addedByName = $agent ? $agent->f_name . ' ' . $agent->l_name : 'N/A';
-    
+
             $hasUnpaidLoans = $client->userLoans()->where('status', '!=', 2)->exists();
             $paymentStatusLabel = $hasUnpaidLoans ? 'Unpaid' : 'Paid';
-    
+
             $clientsData[] = [
                 'client' => $client,
                 'added_by_name' => $addedByName,
                 'payment_status' => $paymentStatusLabel,
             ];
         }
-    
+
         // Check if the request is an AJAX request
         if ($request->ajax()) {
             // Return the partial view as JSON for AJAX requests
@@ -1756,7 +1756,6 @@ function generateSanaaCardData()
     }
 }
 
-
 public function clients(Request $request)
 {
     $pageTitle = 'All Clients';
@@ -1817,7 +1816,6 @@ public function clients(Request $request)
     // Date range filter
     $fromDate = $request->get('from_date');
     $toDate = $request->get('to_date');
-
     if (!empty($fromDate) && !empty($toDate)) {
         $fromDateParsed = Carbon::parse($fromDate)->startOfDay();
         $toDateParsed = Carbon::parse($toDate)->endOfDay();
@@ -1862,7 +1860,6 @@ public function clients(Request $request)
                 'agent_name' => $addedByName,
             ];
         }
-        // Generate PDF
         $pdf = PDF::loadView('admin-views.clients.client-report-pdf', [
             'clientsData' => $clientsData,
             'filters' => $queryParams,
@@ -1870,9 +1867,10 @@ public function clients(Request $request)
         return $pdf->download('client_report.pdf');
     }
 
-    // Paginate the results
+    // Paginate the results using the user-defined records per page
     $page = $request->get('page', 1);
-    $clients = $clientsQuery->latest()->paginate(20, ['*'], 'page', $page)->appends($queryParams);
+    $perPage = $request->get('per_page', 20);
+    $clients = $clientsQuery->latest()->paginate($perPage, ['*'], 'page', $page)->appends($queryParams);
 
     // Collect data for the view
     $clientsData = [];
@@ -1895,13 +1893,10 @@ public function clients(Request $request)
         ];
     }
 
-    // Check if the request is an AJAX request
     if ($request->ajax()) {
-        // Return the partial view as JSON for AJAX requests
         $html = view('admin-views.clients.partials.clients-table', compact('clientsData', 'clients', 'emptyMessage'))->render();
         return response()->json(['html' => $html]);
     } else {
-        // Return the full view for normal requests
         return view('admin-views.clients.allClients', compact(
             'clientsData',
             'search',
@@ -1914,22 +1909,180 @@ public function clients(Request $request)
     }
 }
 
-    
-    
-    
-    
+
+public function clientsFeb(Request $request)
+    {
+        $pageTitle = 'All Clients';
+        $emptyMessage = 'No clients found';
+
+        $queryParams = [];
+        $search = $request->get('search');
+        $clientsQuery = Client::query();
+
+        // Apply search filters
+        if (!empty($search)) {
+            $key = explode(' ', $search);
+            $clientsQuery->where(function ($q) use ($key) {
+                foreach ($key as $value) {
+                    $q->orWhere('name', 'like', "%{$value}%")
+                    ->orWhere('nin', 'like', "%{$value}%")
+                    ->orWhere('email', 'like', "%{$value}%")
+                    ->orWhere('phone', 'like', "%{$value}%");
+                }
+            });
+            $queryParams['search'] = $search;
+        }
+
+        // Fetch agents
+        $agents = User::where('type', 2)
+            ->select('id', 'f_name', 'l_name')
+            ->get();
+
+        // Filter by agent ID
+        $agentId = $request->get('agent_id');
+        if (!empty($agentId) && $agentId != 'all') {
+            $clientsQuery->where('added_by', $agentId);
+            $queryParams['agent_id'] = $agentId;
+        }
+
+        // Filter by payment status
+        $paymentStatus = $request->get('payment_status');
+        if (!empty($paymentStatus) && $paymentStatus != 'all') {
+            if ($paymentStatus == 'paid') {
+                $clientsQuery->whereDoesntHave('userLoans', function ($query) {
+                    $query->where('status', '!=', 2);
+                });
+            } elseif ($paymentStatus == 'unpaid') {
+                $clientsQuery->whereHas('userLoans', function ($query) {
+                    $query->where('status', '!=', 2);
+                });
+            }
+            $queryParams['payment_status'] = $paymentStatus;
+        }
+
+        // Filter by client status
+        $status = $request->get('status');
+        if (!empty($status) && $status != 'all') {
+            $clientsQuery->where('status', $status);
+            $queryParams['status'] = $status;
+        }
+
+        // Date range filter
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+
+        if (!empty($fromDate) && !empty($toDate)) {
+            $fromDateParsed = Carbon::parse($fromDate)->startOfDay();
+            $toDateParsed = Carbon::parse($toDate)->endOfDay();
+            $clientsQuery->whereBetween('created_at', [$fromDateParsed, $toDateParsed]);
+            $queryParams['from_date'] = $fromDate;
+            $queryParams['to_date'] = $toDate;
+        }
+
+        // Filter clients who paid or didn't pay today
+        $paidTodayFilter = $request->get('paid_today');
+        if (!empty($paidTodayFilter) && $paidTodayFilter != 'all') {
+            $today = Carbon::today();
+            if ($paidTodayFilter === 'paid') {
+                $clientsQuery->whereHas('loanPayments', function ($query) use ($today) {
+                    $query->whereDate('payment_date', $today);
+                });
+            } elseif ($paidTodayFilter === 'not_paid') {
+                $clientsQuery->whereDoesntHave('loanPayments', function ($query) use ($today) {
+                    $query->whereDate('payment_date', $today);
+                });
+            }
+            $queryParams['paid_today'] = $paidTodayFilter;
+        }
+
+        // Export to Excel
+        if ($request->has('export') && $request->export == 'excel') {
+            $clients = $clientsQuery->get();
+            return Excel::download(new ClientsExport($clients), 'clients.xlsx');
+        }
+
+        // Download PDF
+        if ($request->has('download') && $request->download == 'pdf') {
+            $clients = $clientsQuery->with(['addedBy'])->get();
+            $clientsData = [];
+            foreach ($clients as $client) {
+                $agent = $client->addedBy;
+                $addedByName = $agent ? $agent->f_name . ' ' . $agent->l_name : 'N/A';
+                $clientsData[] = [
+                    'client_name' => $client->name,
+                    'credit_balance' => $client->credit_balance,
+                    'phone' => $client->phone,
+                    'agent_name' => $addedByName,
+                ];
+            }
+            // Generate PDF
+            $pdf = PDF::loadView('admin-views.clients.client-report-pdf', [
+                'clientsData' => $clientsData,
+                'filters' => $queryParams,
+            ]);
+            return $pdf->download('client_report.pdf');
+        }
+
+        // Paginate the results
+        $page = $request->get('page', 1);
+        $clients = $clientsQuery->latest()->paginate(20, ['*'], 'page', $page)->appends($queryParams);
+
+        // Collect data for the view
+        $clientsData = [];
+        $today = Carbon::today();
+        foreach ($clients as $client) {
+            $agent = $client->addedBy; // Ensure 'addedBy' relationship is defined
+            $addedByName = $agent ? $agent->f_name . ' ' . $agent->l_name : 'N/A';
+
+            $hasUnpaidLoans = $client->userLoans()->where('status', '!=', 2)->exists();
+            $paymentStatusLabel = $hasUnpaidLoans ? 'Unpaid' : 'Paid';
+
+            // Check if client has made a payment today
+            $hasPaidToday = $client->loanPayments()->whereDate('payment_date', $today)->exists();
+
+            $clientsData[] = [
+                'client' => $client,
+                'added_by_name' => $addedByName,
+                'payment_status' => $paymentStatusLabel,
+                'has_paid_today' => $hasPaidToday,
+            ];
+        }
+
+        // Check if the request is an AJAX request
+        if ($request->ajax()) {
+            // Return the partial view as JSON for AJAX requests
+            $html = view('admin-views.clients.partials.clients-table', compact('clientsData', 'clients', 'emptyMessage'))->render();
+            return response()->json(['html' => $html]);
+        } else {
+            // Return the full view for normal requests
+            return view('admin-views.clients.allClients', compact(
+                'clientsData',
+                'search',
+                'pageTitle',
+                'emptyMessage',
+                'clients',
+                'agents',
+                'queryParams'
+            ));
+        }
+    }
+
+
+
+
+
     public function clients222(Request $request): Factory|View|Application
     {
         $pageTitle = 'All Clients';
         $emptyMessage = 'No clients found';
-    
+
         // Retrieve query parameters
         $queryParams = $request->all();
         $search = $request->get('search');
-    
+
         // Start building the query
         $clientsQuery = Client::query();
-    
+
         // Apply search filters
         if ($search) {
             $key = explode(' ', $search);
@@ -1942,20 +2095,20 @@ public function clients(Request $request)
                 }
             });
         }
-    
+
         // Fetch agents with UUIDs
         $agents = User::where('type', 2)
             ->select('id', 'f_name', 'l_name')
             ->get();
 
             // ddd
-    
+
         // Filter by agent using UUID
         $agentUuid = $request->get('agent_id');
         if ($agentUuid && $agentUuid != 'all') {
             $clientsQuery->where('added_by', $agentUuid);
         }
-    
+
         // Filter by payment status
         $paymentStatus = $request->get('payment_status');
         if ($paymentStatus == 'paid') {
@@ -1969,44 +2122,44 @@ public function clients(Request $request)
                 $query->where('status', '!=', 2); // Not 'paid'
             });
         }
-    
+
         // Additional filters (e.g., client status)
         if ($request->has('status') && $request->status != 'all') {
             $clientsQuery->where('status', $request->status);
         }
-    
+
         // Date range filter
         if ($request->has('from_date') && $request->has('to_date')) {
             $fromDate = Carbon::parse($request->from_date)->startOfDay();
             $toDate = Carbon::parse($request->to_date)->endOfDay();
             $clientsQuery->whereBetween('created_at', [$fromDate, $toDate]);
         }
-    
+
         // Export to Excel
         if ($request->has('export') && $request->export == 'excel') {
             $clients = $clientsQuery->get();
             return Excel::download(new ClientsExport($clients), 'clients.xlsx');
         }
-    
+
         // Paginate the results
         $clients = $clientsQuery->latest()->paginate(20)->appends($queryParams);
-    
+
         // Collect data for the view
         $clientsData = [];
         foreach ($clients as $client) {
             $agent = $client->addedBy; // Use the relationship
             $addedByName = $agent ? $agent->f_name . ' ' . $agent->l_name : 'N/A';
-    
+
             $hasUnpaidLoans = $client->userLoans()->where('status', '!=', 2)->exists();
             $paymentStatus = $hasUnpaidLoans ? 'Unpaid' : 'Paid';
-    
+
             $clientsData[] = [
                 'client' => $client,
                 'added_by_name' => $addedByName,
                 'payment_status' => $paymentStatus,
             ];
         }
-    
+
         return view('admin-views.clients.allClients', compact(
             'clientsData',
             'search',
@@ -2017,20 +2170,20 @@ public function clients(Request $request)
             'queryParams'
         ));
     }
-    
+
 
     public function clientsX(Request $request): Factory|View|Application
     {
         $pageTitle = 'All Clients';
         $emptyMessage = 'No clients found';
-    
+
         // Retrieve query parameters
         $queryParams = $request->all();
         $search = $request->get('search');
-    
+
         // Start building the query
         $clientsQuery = Client::query();
-    
+
         // Apply search filters
         if ($search) {
             $key = explode(' ', $search);
@@ -2043,13 +2196,13 @@ public function clients(Request $request)
                 }
             });
         }
-    
+
         // Filter by agent
         $agentId = $request->get('agent_id');
         if ($agentId && $agentId != 'all') {
             $clientsQuery->where('added_by', $agentId);
         }
-    
+
         // Filter by payment status
         $paymentStatus = $request->get('payment_status');
         if ($paymentStatus == 'paid') {
@@ -2063,29 +2216,29 @@ public function clients(Request $request)
                 $query->where('status', '!=', 2); // Not 'paid'
             });
         }
-    
+
         // Additional filters (e.g., other client table variables)
         // Example: Filter by status
         if ($request->has('status') && $request->status != 'all') {
             $clientsQuery->where('status', $request->status);
         }
-    
+
         // Date range filter
         if ($request->has('from_date') && $request->has('to_date')) {
             $fromDate = Carbon::parse($request->from_date)->startOfDay();
             $toDate = Carbon::parse($request->to_date)->endOfDay();
             $clientsQuery->whereBetween('created_at', [$fromDate, $toDate]);
         }
-    
+
         // Export to Excel
         if ($request->has('export') && $request->export == 'excel') {
             $clients = $clientsQuery->get();
             return Excel::download(new ClientsExport($clients), 'clients.xlsx');
         }
-    
+
         // Paginate the results
         $clients = $clientsQuery->latest()->paginate(20)->appends($queryParams);
-    
+
         // Collect data for the view
         $clientsData = [];
         foreach ($clients as $client) {
@@ -2098,10 +2251,10 @@ public function clients(Request $request)
                 'payment_status' => $paymentStatus, // Ensure this key is set
             ];
         }
-    
+
         // Get list of agents for filter dropdown
         $agents = User::where('type', 2)->get(); // Adjust 'type' field as per your User model
-    
+
         return view('admin-views.clients.allClients', compact(
             'clientsData',
             'search',
@@ -2112,19 +2265,19 @@ public function clients(Request $request)
             'queryParams'
         ));
     }
-    
+
 
      public function clients2(Request $request): Factory|View|Application
     {
         // $this -> generateSanaaCardData();
         $pageTitle = 'All Clients';
         $emptyMessage = 'No clients found';
-    
+
         $queryParams = [];
         $search = $request->get('search');
-        
+
         $clientsQuery = Client::query();
-        
+
         if ($search) {
             $key = explode(' ', $search);
             $clientsQuery->where(function ($q) use ($key) {
@@ -2137,42 +2290,42 @@ public function clients(Request $request)
             });
             $queryParams['search'] = $search;
         }
-    
+
         $clientsData = [];
         $clients = $clientsQuery->latest()->paginate(Helpers::pagination_limit())->appends($queryParams);
-    
+
         // Loop through the clients and collect the required data
         foreach ($clients as $client) {
             $addedByUser = User::find($client->added_by); // Fetch the user who added this client
-            
+
             $clientsData[] = [
                 'client' => $client,
                'added_by_name' => $addedByUser ? $addedByUser->f_name . ' ' . $addedByUser->l_name : 'N/A',
 
             ];
         }
-    
+
         return view('admin-views.clients.allClients', compact('clientsData', 'search', 'pageTitle', 'emptyMessage', 'clients'));
     }
 
 
-    
+
     // active clients
      public function activeClients(Request $request): Factory|View|Application
         {
-            
-            
-            
-            
+
+
+
+
             // $this -> generateSanaaCardData();
         $pageTitle = 'Active Clients';
         $emptyMessage = 'No clients found';
-    
+
         $queryParams = [];
         $search = $request->get('search');
-        
+
         $clientsQuery = Client::where('status', 'active');
-        
+
         if ($search) {
             $key = explode(' ', $search);
             $clientsQuery->where(function ($q) use ($key) {
@@ -2185,26 +2338,26 @@ public function clients(Request $request)
             });
             $queryParams['search'] = $search;
         }
-    
+
         $clientsData = [];
         $clients = $clientsQuery->latest()->paginate(Helpers::pagination_limit())->appends($queryParams);
-    
+
         // Loop through the clients and collect the required data
         foreach ($clients as $client) {
             $addedByUser = User::find($client->added_by); // Fetch the user who added this client
-            
+
             $clientsData[] = [
                 'client' => $client,
                'added_by_name' => $addedByUser ? $addedByUser->f_name . ' ' . $addedByUser->l_name : 'N/A',
 
             ];
         }
-    
+
         return view('admin-views.clients.index', compact('clientsData', 'search', 'pageTitle', 'emptyMessage', 'clients'));
         }
 
-    
-    
+
+
  public function agentReport3333()
 {
     $agents = User::join('clients', 'users.id', '=', 'clients.added_by')
@@ -2261,42 +2414,42 @@ public function clients(Request $request)
     return view('admin-views.reports.agent-report', compact('agents', 'totals'));
 }
 
-    
-    
-  
 
-  
-    
-    
+
+
+
+
+
+
     public function distroy(Request $request)
     {
-        
-        
+
+
        $client = Client::findOrFail($request->id);
         $client->delete();
         Toastr::success(translate('Message Delete successfully'));
-        
+
         // Redirect back to the client list with a success message
         return back(); //redirect()->route('admin.allclients');
 
     }
 
 
-    
+
     // with balance
     public function clientsWithBalance()
 {
     $pageTitle = 'Clients With Balance';
     $query = Client::where('credit_balance', '>', 0); // Updated to check credit_balance
     $emptyMessage = 'No Clients With Balance Yet';
-    
+
     if (request()->search) {
         $query = $query->where('trx', request()->search);
         $emptyMessage = 'No Data Found';
     }
-    
+
     $clients = $query->paginate(20);
-    
+
     return view('admin-views.clients.index', compact('pageTitle', 'emptyMessage', 'clients'));
 }
 
@@ -2307,40 +2460,40 @@ public function clients(Request $request)
             $pageTitle = 'Banned Clients';
             $queryParams = [];
             $search = $request->input('search');
-        
+
             $query = Client::where('status', 'banned');
             $emptyMessage = 'No Banned Clients Yet';
-        
+
             if ($request->has('search')) {
                 $query = $query->where('trx', 'like', "%{$search}%");
                 $emptyMessage = 'No Data Found';
                 $queryParams['search'] = $search;
             }
-        
+
             $clients = $query->paginate(Helpers::pagination_limit())->appends($queryParams);
-        
+
             return view('admin-views.clients.index', compact('pageTitle', 'emptyMessage', 'clients', 'search'));
         }
 
-            
+
     // verified
     public function verifiedClients(Request $request): Factory|View|Application
                 {
                     $pageTitle = 'Verified Clients';
                     $queryParams = [];
                     $search = $request->input('search');
-                
+
                     $query = Client::where('verified', true);
                     $emptyMessage = 'No Verified Clients Yet';
-                
+
                     if ($request->has('search')) {
                         $query = $query->where('trx', 'like', "%{$search}%");
                         $emptyMessage = 'No Data Found';
                         $queryParams['search'] = $search;
                     }
-                
+
                     $clients = $query->paginate(Helpers::pagination_limit())->appends($queryParams);
-                
+
                     return view('admin-views.clients.index', compact('pageTitle', 'emptyMessage', 'clients', 'search'));
                 }
 
@@ -2353,38 +2506,38 @@ public function clients(Request $request)
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-     
-    //  get client profile 
+
+    //  get client profile
    public function getClientProfile(Request $request): JsonResponse
     {
         $client = Client::where('id', $request -> id)->get();
         return response()->json(response_formatter(DEFAULT_200, $client, null), 200);
-        
-    }
-     
 
-    
+    }
+
+
+
     public function addClient(Request $request): JsonResponse
     {
-        
+
 
         $client = Client::create($request->all());
 
         return response()->json(response_formatter(DEFAULT_200, $client, null), 200);
 
     }
-    
+
     // get client guarantors
     public function clientguarantorsList(Request $request): JsonResponse
     {
         $clientguarantors = Guarantor::where('client_id', $request -> id)->get();
         return response()->json(response_formatter(DEFAULT_200, $clientguarantors, null), 200);
-        
+
     }
-    
-  
-    
-    
+
+
+
+
     // add photos
     public function addClientPhotos(Request $request): JsonResponse
         {
@@ -2394,30 +2547,30 @@ public function clients(Request $request)
                 'photo' => 'nullable|file|mimes:jpeg,png,jpg',
                 'national_id_photo' => 'nullable|file|mimes:jpeg,png,jpg',
             ]);
-        
-    
-        
+
+
+
             $photoPath = $request->file('photo') ? $request->file('photo')->store('clients/photos', 'public') : null;
             $nationalIdPhotoPath = $request->file('national_id_photo') ? $request->file('national_id_photo')->store('clients/national_id_photos', 'public') : null;
 
-            
-            
+
+
             $client = Client::find($request->client_id);
-        
+
             if ($client) {
                 $client->client_photo = $photoPath;
                 $client->national_id_photo = $nationalIdPhotoPath;
                 $client->save();
             }
-        
+
             // Return a JSON response with the updated client data
             return response()->json(response_formatter(DEFAULT_200, $client, null), 200);
         }
 
-    
-    
-    
-    
+
+
+
+
       public function updateProfile(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -2441,7 +2594,7 @@ public function clients(Request $request)
         $user->save();
         return response()->json(['message' => 'Profile successfully updated'], 200);
     }
-    
-   
+
+
 
 }

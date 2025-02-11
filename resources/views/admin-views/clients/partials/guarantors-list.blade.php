@@ -14,6 +14,7 @@
             <!-- Guarantor Details -->
             <div class="card-body">
                 <h5 class="card-title text-dark mb-1">{{ $guarantor->name }}</h5>
+                <p class="card-text text-muted">Phone: {{ $guarantor->phone }}</p>
                 <p class="card-text text-muted">NIN: {{ $guarantor->nin }}</p>
             </div>
         </div>

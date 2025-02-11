@@ -2161,4 +2161,6 @@
   'Number of Loans' => 'Number of Loans',
   'Month' => 'Month',
   'Loans Analysis' => 'Loans Analysis',
+  'Arrears' => 'Arrears',
+  'Advances' => 'Advances',
 );

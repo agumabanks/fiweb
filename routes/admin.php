@@ -26,7 +26,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\BusinessSettingsController;
 use App\Http\Controllers\Admin\LandingPageSettingsController;
-use App\Http\Controllers\ExpenseController; 
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\MembershipController;
 
 use App\Http\Controllers\ExcessFundController;
@@ -56,6 +56,27 @@ use App\Http\Controllers\Admin\AppController;
 
 
 Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
+
+
+
+    Route::get('/loan-analysis', [LoanAnalysisController::class, 'index'])->name('loan.analysis');
+
+    Route::get('/loan-analysis/data', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.data');
+
+    Route::get('/admin/loans/analysis',         [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
+    Route::delete('/admin/loans/delete/{id}',   [LoanAnalysisController::class, 'deleteLoan'])->name('loan.delete');
+
+       // Loan Analysis
+    // Route::get('/loan-analysis', [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
+    Route::get('/loan-analysis/fetch', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.fetch');
+
+
+
+    Route::get('/admin/loan-arrears', [LoanOfferController::class, 'loanArrearsIndex'])->name('loan-arrears.index');
+    Route::get('/admin/loan-arrears/data', [LoanOfferController::class, 'loanArrearsData'])->name('loan-arrears.data');
+
+
+
     Route::get('lang/{locale}', [LanguageController::class, 'lang'])->name('lang');
 
     Route::group(['namespace' => 'Auth', 'prefix' => 'auth', 'as' => 'auth.'], function () {
@@ -66,11 +87,11 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
     });
     // deleteLoan
-    
+
     Route::get('/settingsController', [SettingsController::class, 'index'])->name('settings.index');
 
-// Display a listing of the memberships.
-    
+
+
     // Membership resource routes
     Route::get('/memberships', [MembershipController::class, 'index'])->name('memberships.index');
     Route::get('/memberships/create', [MembershipController::class, 'create'])->name('memberships.create');
@@ -80,78 +101,58 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     Route::put('/memberships/{membership}', [MembershipController::class, 'update'])->name('memberships.update');
     Route::patch('/memberships/{membership}', [MembershipController::class, 'update']);
     Route::delete('/memberships/{membership}', [MembershipController::class, 'destroy'])->name('memberships.destroy');
-    
+
     // Share transaction routes
     Route::get('/memberships/{membership}/shares/create', [MembershipController::class, 'createShareTransaction'])->name('shares.create');
     Route::post('/memberships/{membership}/shares', [MembershipController::class, 'storeShareTransaction'])->name('shares.store');
     Route::get('/memberships/{membership}/shares/transfer', [MembershipController::class, 'transferSharesForm'])->name('shares.transfer.form');
     Route::post('/memberships/{membership}/shares/transfer', [MembershipController::class, 'transferShares'])->name('shares.transfer.post');
     Route::get('/shares/create', [MembershipController::class, 'createGlobalShareTransaction'])->name('shares.create.global');
-    
+
     // Report routes
     Route::get('/memberships/reports', [MembershipController::class, 'reportsIndex'])->name('memberships.reports.index');
     Route::post('/memberships/reports/generate', [MembershipController::class, 'generateReports'])->name('memberships.reports.generate');
     Route::post('/memberships/reports/export', [MembershipController::class, 'exportReport'])->name('memberships.reports.export');
-    
+
     // Receipt routes
     Route::get('/memberships/{membership}/shares/{transaction}/receipt', [MembershipController::class, 'printTransactionReceiptPdf'])->name('shares.receipt.pdf');
     Route::get('/memberships/{membership}/shares/{transaction}/receipt/thermal', [MembershipController::class, 'printTransactionReceiptThermal'])->name('shares.receipt.thermal');
 
-    // Route::get('/memberships', [MembershipController::class, 'index'])->name('memberships.index');
-    
-    // // Show the form for creating a new membership.
-    // Route::get('/memberships/create', [MembershipController::class, 'create'])->name('memberships.create');
-    
-    // // Store a newly created membership in storage.
-    // Route::post('/memberships', [MembershipController::class, 'store'])->name('memberships.store');
-    
-    // // Display the specified membership.
-    // Route::get('/memberships/{membership}', [MembershipController::class, 'show'])->name('memberships.show');
-    
-    // // Show the form for editing the specified membership.
-    // Route::get('/memberships/{membership}/edit', [MembershipController::class, 'edit'])->name('memberships.edit');
-    
-    // // Update the specified membership in storage.
-    // Route::put('/memberships/{membership}', [MembershipController::class, 'update'])->name('memberships.update');
-    // Route::patch('/memberships/{membership}', [MembershipController::class, 'update']); // Optional, for PATCH requests
-    
-    // // Remove the specified membership from storage.
-    // Route::delete('/memberships/{membership}', [MembershipController::class, 'destroy'])->name('memberships.destroy');
 
-   
+
 // 1. List All Savings Accounts
     Route::get('/savings', [SavingsController::class, 'index'])->name('savings.index');
-    
+
     // 2. Show Form to Create a New Savings Account
     Route::get('/savings/create', [SavingsController::class, 'create'])->name('savings.create');
-    
+
     // 3. Store a New Savings Account
     Route::post('/savings', [SavingsController::class, 'store'])->name('savings.store');
-    
+
     // 4. Display a Specific Savings Account
     Route::get('/savings/{savings}', [SavingsController::class, 'show'])->name('savings.show');
-    
+
     // 5. Show Form to Edit a Savings Account
     Route::get('/savings/{savings}/edit', [SavingsController::class, 'edit'])->name('savings.edit');
-    
+
     // 6. Update a Savings Account
     Route::put('/savings/{savings}', [SavingsController::class, 'update'])->name('savings.update');
-    
+
     // 7. Delete a Savings Account
     Route::delete('/savings/{savings}', [SavingsController::class, 'destroy'])->name('savings.destroy');
-    
+
     // 8. Show Form to Deposit Funds
     Route::get('/savings/{savings}/deposit', [SavingsController::class, 'depositForm'])->name('savings.depositForm');
-    
+
     // 9. Handle Deposit Action
     Route::post('/savings/{savings}/deposit', [SavingsController::class, 'deposit'])->name('savings.deposit');
-    
+
     // 10. Show Form to Withdraw Funds
     Route::get('/savings/{savings}/withdraw', [SavingsController::class, 'withdrawForm'])->name('savings.withdrawForm');
-    
+
     // 11. Handle Withdrawal Action
     Route::post('/savings/{savings}/withdraw', [SavingsController::class, 'withdraw'])->name('savings.withdraw');
-    
+
     Route::get('/savings/{savings}/transaction/{transaction}/receipt', [SavingsController::class, 'printTransactionReceiptThermal'])->name('savings.transaction.receipt');
 
 // reports.index'
@@ -168,35 +169,47 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     // print
     // Route to view transaction details
     Route::get('/transaction/{transactionId}', [TransactionController::class, 'show'])->name('transaction.show');
-    Route::get('/admin/loans/analysis',         [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
-    Route::get('/loan-analysis/data', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.data');
+    // Route::get('/admin/loans/analysis',         [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
+    // Route::get('/loan-analysis/data', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.data');
+
+    // // Route::get('/loan-analysis', [LoanAnalysisController::class, 'index'])->name('loan.analysis.index');
+    // Route::get('/loan-analysis/fetch', [LoanAnalysisController::class, 'fetchData'])->name('loan.analysis.fetch');
 
 
 
 
-    Route::get('/admin/loan-arrears', [LoanOfferController::class, 'loanArrearsIndex'])->name('loan-arrears.index');
-    Route::get('/admin/loan-arrears/data', [LoanOfferController::class, 'loanArrearsData'])->name('loan-arrears.data');
-    
+
+    // teller
+
+    Route::get('/teller', [LoanOfferController::class, 'tellerIndex'])->name('teller.index');
+
+    // Teller data for DataTables (Ajax)
+    Route::post('/teller/data', [LoanOfferController::class, 'tellerData'])->name('teller.data');
+
+    // Ajax pay from teller
+    Route::post('/teller/pay-loan', [LoanOfferController::class, 'tellerPayLoan'])->name('teller.payLoan');
+
+
 
     // For listing advances
     Route::get('/admin/loan-advances', [LoanOfferController::class, 'loanAdvancesIndex'])->name('loan-advances.index');
     Route::get('/admin/loan-advances/data', [LoanOfferController::class, 'listLoanAdvances'])->name('loan-advances.data');
-  
 
-    
+
+
     // sendSmsNotification
     Route::post('/sms/{transactionId}', [TransactionController::class, 'SmsNotification'])->name('transactiosn.sms');
     Route::post('admin/sms/{payment}', [TransactionController::class, 'SmsNotification'])->name('transaction.sms');
 
     Route::get('/admin/loan-arrears', [LoanOfferController::class, 'loanArrearsIndex'])->name('loan-arrears.index');
     Route::get('/admin/loan-arrears/data', [LoanOfferController::class, 'loanArrearsData'])->name('loan-arrears.data');
-    
+
 
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printTransactionReceipt'])->name('transaction.printReceipt');
-   
+
     Route::get('/print-statment/{clientId}', [TransactionController::class, 'showStatment'])->name('print-statment');
     Route::get('/print-loan-statment/{Id}', [TransactionController::class, 'showLoanStatment'])->name('print-showLoanStatment');
- 
+
     // Route::get('/agent-report/{agentId}', [AgentReportController::class, 'index'])->name('agent.report');
 
 
@@ -210,10 +223,10 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
  // Example for expense routes
         Route::post('/expenses/{id}/reverse', [ExpenseController::class, 'reverse'])->name('expenses.reverse');
         Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
-            
+
             // Example for cashflow routes
         Route::delete('/cashflow/{id}', [ExpenseController::class, 'destroyCashflow'])->name('cashflow.destroy');
-        
+
         // Excess Funds Routes
         Route::get('admin/excess-funds',                        [ExpenseController::class, 'indexExcessfund'])->name('excess-funds.index');
         Route::get('admin/excess-funds/create',                 [ExpenseController::class, 'createExcessfund'])->name('excess-funds.create');
@@ -222,7 +235,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         Route::put('admin/excess-funds/{excessFund}',           [ExpenseController::class, 'updateExcessfund'])->name('excess-funds.update');
         Route::delete('admin/excess-funds/{excessFund}',        [ExpenseController::class, 'destroyExcessfund'])->name('excess-funds.destroy');
 
-   
+
     // branches
     Route::get('/branches/create', [BranchesController::class, 'create'])->name('branches.create');
     Route::post('/branches', [BranchesController::class, 'store'])->name('branches.store');
@@ -246,30 +259,30 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
 
         Route::group(['middleware' => ['admin']], function () {
-            
-            
-            
-            
+
+
+
+
         Route::get('/clients/export/excel', [ClientController::class, 'exportClientsToExcel'])->name('clients.export.excel');
 
-  
+
         Route::get('agent-report-today', [ClientController::class, 'agentDash'])->name('agent.report');
 
         Route::get('agent-report', [ClientController::class, 'agentDash'])->name('agent.report');
         Route::get('/agent-report-transaction', [ClientController::class, 'agentTransactions'])->name('agent.trans');
         Route::get('/agent/{agentId}/clients', [ClientController::class, 'agentClientDetails'])->name('agent.client.details');
-        
+
         Route::get('/admin/reports/export-daily-analytics-pdf', [AdminReportController::class, 'exportAnalyticsPDF'])->name('reports.exportDailyAnalyticsPDF');
 
 
        Route::get('cards/{id}/print', [CardController::class, 'generatePdf'])->name('cards.print');
 
        Route::post('/admin/cashflow/store', [ExpenseController::class, 'storeCashflow'])->name('cashflow.store');
-       
+
        // Routes for Cash Flow
         Route::get('cashflow/create', [ExpenseController::class, 'createCashflow'])->name('cashflow.create');
         Route::post('cashflow/store', [ExpenseController::class, 'storeCashflow'])->name('cashflow.store');
-        
+
         // Routes for Expenses
         Route::get('expense/create', [ExpenseController::class, 'create'])->name('expense.create');
         Route::post('expense/store', [ExpenseController::class, 'store'])->name('expense.store');
@@ -277,8 +290,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
         // expenses
         Route::post('/expe/del/{id}', [ExpenseController::class, 'distroy'])->name('expense.delete');
-          // clients 
-        Route::get('/clients', [ClientController::class, 'clients'])->name('allclients');
+          // clients
+        Route::get('/clients/all', [ClientController::class, 'clients'])->name('allclients');
         Route::get('/activeclients', [ClientController::class, 'activeClients'])->name('clients.active');
 
         // clients.ajax
@@ -294,9 +307,9 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         Route::post('/clients/del/{id}', [ClientController::class, 'distroy'])->name('clients.delete');
 
 
-        Route::post('/access/histo', [ClientController::class, 'distroy'])->name('access.history'); 
+        Route::post('/access/histo', [ClientController::class, 'distroy'])->name('access.history');
         Route::post('/notification/history', [ClientController::class, 'distroy'])->name('notification.history');
-        
+
         Route::post('/clients/{client}/topup', [LoanOfferController::class, 'topup'])->name('clients.topup');
         Route::post('/admin/loans/{loan}/renew', [LoanOfferController::class, 'renewLoan'])->name('loans.renewLoan');
 
@@ -305,32 +318,32 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
 
 
-        
-        // delete loan 
+
+        // delete loan
         Route::delete('/clients/loan/del/{id}', [LoanOfferController::class, 'deleteLoan'])->name('loan.delete');
-        
+
         // deleteLoan
         Route::post('/clients/loan/deleteLoan/{id}', [LoanOfferController::class, 'deleteLoanNow'])->name('loan.deleteLoan');
 
-        
+
         // Route to display the edit form
         Route::get('/clients/{id}/edit', [ClientController::class, 'edit'])->name('clients.edit');
-        
+
         // Route to handle the update submission
         Route::put('/clients/{id}', [ClientController::class, 'update'])->name('clients.update');
-        
+
         // addClientGuarantorWeb
          Route::post('/clients/addguar/{id}', [ClientController::class, 'addClientGuarantorWeb'])->name('clients.addClientGuarantorWeb');
 
 
-        // client cards 
+        // client cards
         Route::get('/client/cards', [ClientController::class, 'clientsCards'])->name('client.cards');
-        
+
         // add client
         Route::get('/client/create', [ClientController::class, 'createClient'])->name('client.create');
         Route::post('/client/store', [ClientController::class, 'store'])->name('client.store');
-        
-        
+
+
         // add client loan online
         Route::post('admin/loans/storeClientLoan', [LoanOfferController::class, 'storeClientLoan'])->name('loans.storeClientLoan');
         Route::get('admin/loans/updateClientLoan/{id}', [LoanOfferController::class, 'addClientLoan'])->name('loans.updateClientLoan');
@@ -341,19 +354,19 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
     // pay loan by admin
         Route::get('/loan/{loanid}/pay', [LoanOfferController::class, 'adminPayingLoan'])->name('loans.admin.pay1');
-        
+
         Route::post('/loan/slot/pay/{slotId}', [LoanOfferController::class, 'updateLoanPayment'])->name('loans.admin.pay');
 
         Route::get('/admin/loans/pay-loan/{id}', [LoanOfferController::class, 'adminPayingLoan'])->name('loans.admin.pay');
         Route::post('/admin/loans/update-payment/{loanId}', [LoanOfferController::class, 'updateLoanPayment'])->name('loans.updatePayment');
-        
-        
+
+
         // Route to reverse the payment
         Route::patch('admin/payments/reverse/{id}', [LoanOfferController::class, 'reversePayment'])->name('payments.reverse');
 
 
 
-        
+
         // reports
         Route::get('/report', [AdminReportController::class, 'index'])->name('report.index');
 
@@ -375,19 +388,19 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
         // Route::delete('admin/actual-cash/{id}', [ExpenseController::class, 'destroyActualSafeCash'])->name('admin.actual-cash.destroy');
 
-        
 
-        
+
+
         // Route::get('/admin/reports', [AdminReportController::class, 'index'])->name('daily-reports.index');
-        
-        
+
+
         Route::get('/admin/daily-report', [AdminReportController::class, 'generateDailyReport'])->name('daily-report');
         Route::get('/reports/create', [AdminReportController::class, 'create'])->name('daily-reports.create');
         Route::post('/reports/store', [AdminReportController::class, 'store'])->name('daily-reports.store');
         Route::get('/reports/export', [AdminReportController::class, 'export'])->name('daily-reports.export');
-        
+
         Route::get('/loan/{id}', [LoanOfferController::class, 'showLoan'])->name('loans.show');
-        
+
         // approveLoan
         Route::post('/loan/{id}/approve', [LoanOfferController::class, 'approveLoan'])->name('loans.approve');
         // editLoan
@@ -397,24 +410,24 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
          Route::post('/loan/{id}/editsave', [LoanOfferController::class, 'saveLoanEdit'])->name('loans.saveloanedit');
 
 
-        
 
 
 
-        
-        
+
+
+
         Route::get('/add-clients', [ClientController::class, 'createClient'])->name('clients.add');
         Route::post('/store-clients', [ClientController::class, 'store'])->name('clients.store');
 
-        Route::post('/store-clients-photo', [ClientController::class, 'store'])->name('clients.upload'); 
+        Route::post('/store-clients-photo', [ClientController::class, 'store'])->name('clients.upload');
 
- 
-        
-        
+
+
+
         // Loans
         Route::apiResource('loan-applications', LoanApplicationController::class);
         Route::apiResource('loan-offers', LoanOfferController::class);
-        
+
         // loan Plans
         Route::get('/loanplans', [LoanOfferController::class, 'allplans'])->name('loan-plans');
         // Add
@@ -429,28 +442,28 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         // Route::post('/client/{clientId}/fine', [LoanOfferController::class, 'storeClientFine'])->name('clients.fines.store');
 
 
-         
+
         //  editplan
         Route::get('/editplan', [LoanOfferController::class, 'editplan'])->name('edit-loan-plans');
-        
+
         Route::get('/loan-plans/{id}/edit', [LoanOfferController::class, 'editplan'])->name('loan-plans.edit');
         Route::put('/loan-plans/{id}', [LoanOfferController::class, 'updateNow'])->name('loan-plans.update');
         Route::delete('/loan-plans/{id}', [LoanOfferController::class, 'destroyNow'])->name('loan-plans.destroy');
-        
+
         // all loans
         Route::get('/all-loans', [LoanOfferController::class, 'all_loans'])->name('all-loans');
         // paid Loans
         Route::get('/paidLoans', [LoanOfferController::class, 'paidLoans'])->name('paidLoans');
-        
+
         // pending loans
         Route::get('/pendingLoans', [LoanOfferController::class, 'pendingLoans'])->name('loan-pendingLoans');
         // rejected loans
         Route::get('/rejectedLoans', [LoanOfferController::class, 'rejectedLoans'])->name('loan-loanrejectedLoans');
         // Due loans
         Route::get('/dueloans', [LoanOfferController::class, 'dueLoans'])->name('loans-due');
-        // running loans 
+        // running loans
         Route::get('/runningLoans', [LoanOfferController::class, 'runningLoans'])->name('loan-runningLoans');
-        
+
         // Store Fine Route
         // Route::post('/admin/clients/{client}/fines', [LoanOfferController::class, 'storeClientFine'])->name('clients.fines.store');
         // Route::post('/admin/clients/{client}/fines', [LoanOfferController::class, 'storeClientFine'])->name('clients.fines.store');
@@ -681,12 +694,12 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
              Route::post('expenses-store', [ExpenseController::class, 'store'])->name('store');
             //  Route::post('/expenses/del/{id}', [ExpenseController::class, 'distroy'])->name('delete');
             //  Route::resource('expenses', ExpenseController::class);
-            
-           
+
+
 
         });
         Route::resource('expenses', ExpenseController::class);
-        
+
 
         Route::group(['prefix' => 'withdraw', 'as' => 'withdraw.'], function () {
             Route::get('requests', [WithdrawController::class, 'index'])->name('requests');

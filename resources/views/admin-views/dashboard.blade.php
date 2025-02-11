@@ -203,7 +203,7 @@
             @endif
         </div>
     </div>
-    
+
     <!-- In your navigation bar or header -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <!-- Other nav items -->
@@ -261,38 +261,48 @@
 <script>
     // Monthly Loan Data Chart
     var monthlyLoanCtx = document.getElementById('monthlyLoanChart').getContext('2d');
+
+
+
     var monthlyLoanChart = new Chart(monthlyLoanCtx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
             ],
             datasets: [
-                {
-                    label: 'Loans Disbursed',
-                    data: {!! json_encode($monthlyLoanData['disbursed']) !!},
-                    backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    fill: false,
-                },
-                {
-                    label: 'Repayments',
-                    data: {!! json_encode($monthlyLoanData['repaid']) !!},
-                    backgroundColor: 'rgba(40, 167, 69, 0.6)',
-                    borderColor: 'rgba(40, 167, 69, 1)',
-                    fill: false,
-                }
+            {
+                label: 'Loans Disbursed',
+                data: {!! json_encode($monthlyLoanData['disbursed']) !!},
+                backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                borderColor: 'rgba(0, 123, 255, 1)',
+                borderWidth: 1
+            },
+            {
+                label: 'Repayments',
+                data: {!! json_encode($monthlyLoanData['repaid']) !!},
+                backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }
             ]
         },
         options: {
             responsive: true,
+            scales: {
+            yAxes: [{
+                ticks: {
+                beginAtZero: true
+                }
+            }]
+            },
             title: {
-                display: true,
-                text: 'Monthly Loan Data'
+            display: true,
+            text: 'Monthly Loan Data'
             }
         }
-    });
+        });
 
     // Loan Aging Analysis Chart
     var loanAgingCtx = document.getElementById('loanAgingChart').getContext('2d');

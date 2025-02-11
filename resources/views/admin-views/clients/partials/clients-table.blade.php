@@ -26,7 +26,7 @@
                         href="{{ route('admin.loans.admin.pay',  $data['client']->id) }}" >
                          <i class="fa fa-credit-card" aria-hidden="true"></i>
                      </a>
-                        
+
                         <a class="action-btn btn btn-outline-primary"
                            href="{{ route('admin.clients.profile', $data['client']->id) }}">
                             <i class="fa fa-eye" aria-hidden="true"></i>
@@ -42,7 +42,7 @@
                                 <i class="fa fa-trash"></i>
                             </button>
                         </form>
-                        
+
                         <!--<form action="{{ route('admin.clients.delete', $data['client']->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this client?');">-->
                         <!--    @csrf-->
                         <!--    <button type="submit" class="action-btn btn btn-outline-danger">-->
@@ -63,7 +63,7 @@
 
 <!-- Pagination -->
 <div class="table-responsive mt-4 px-3">
-    <div class="d-flex justify-content-end">
+    <div class="d-flex justify-content-center p-4">
         {!! $clients->links('admin-views.clients.partials.ajax') !!}
     </div>
 </div>

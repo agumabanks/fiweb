@@ -31,17 +31,23 @@ class LoanPaymentInstallment extends Model
     {
         return $this->belongsTo(Client::class);
     }
-    
+
     public function userLoan()
     {
         return $this->belongsTo(UserLoan::class, 'loan_id');
     }
-    
+
      // Define relationship with the User (Agent)
     public function agent()
     {
         return $this->belongsTo(User::class, 'agent_id');
     }
+
+
+    public function loan()
+{
+    return $this->belongsTo(UserLoan::class, 'loan_id');
+}
 
     // Define relationship with the Client
     // public function client()
