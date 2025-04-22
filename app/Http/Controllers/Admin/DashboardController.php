@@ -207,9 +207,9 @@ class DashboardController extends Controller
     private function getTopTransactions()
     {
         return LoanPayment::with('client')
-            ->orderByDesc('amount')
-            ->take(5)
-            ->get();
+        ->orderByDesc('payment_date')  // Order by payment date, newest first
+        ->take(10)  // Increased from 5 to 10 to show more recent transactions
+        ->get();
     }
 
     /**
@@ -239,10 +239,35 @@ class DashboardController extends Controller
      */
     private function getLoanAging(): array
     {
+        // Count loans overdue by 30 days (between 30-59 days)
+        $thirtyDays = UserLoan::where('status', 'overdue')
+            ->where('due_date', '<', now()->subDays(30))
+            ->where('due_date', '>=', now()->subDays(60))
+            ->count();
+            
+        // Count loans overdue by 60 days (between 60-89 days)
+        $sixtyDays = UserLoan::where('status', 'overdue')
+            ->where('due_date', '<', now()->subDays(60))
+            ->where('due_date', '>=', now()->subDays(90))
+            ->count();
+            
+        // Count loans overdue by 90+ days
+        $ninetyDays = UserLoan::where('status', 'overdue')
+            ->where('due_date', '<', now()->subDays(90))
+            ->count();
+            
+        // Calculate total overdue percentage
+        $totalLoans = UserLoan::count();
+        $totalOverdue = $thirtyDays + $sixtyDays + $ninetyDays;
+        $overduePercentage = $totalLoans > 0 ? round(($totalOverdue / $totalLoans) * 100, 1) : 0;
+            
         return [
-            '30_days' => UserLoan::where('due_date', '<', now()->subDays(30))->count(),
-            '60_days' => UserLoan::where('due_date', '<', now()->subDays(60))->count(),
-            '90_days' => UserLoan::where('due_date', '<', now()->subDays(90))->count(),
+            '30_days' => $thirtyDays,
+            '60_days' => $sixtyDays,
+            '90_days' => $ninetyDays,
+            'total_overdue' => $totalOverdue,
+            'total_loans' => $totalLoans,
+            'overdue_percentage' => $overduePercentage
         ];
     }
 }

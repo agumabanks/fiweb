@@ -2163,4 +2163,11 @@
   'Loans Analysis' => 'Loans Analysis',
   'Arrears' => 'Arrears',
   'Advances' => 'Advances',
+  'Analysis' => 'Analysis',
+  'Sanaa' => 'Sanaa',
+  'Monthly Reports' => 'Monthly Reports',
+  ' Savings Dashboad' => ' Savings Dashboad',
+  'Membership Mgt' => 'Membership Mgt',
+  'Tellers' => 'Tellers',
+  'How to do what?' => 'How to do what ',
 );
