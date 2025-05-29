@@ -147,7 +147,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
     Route::get('lang/{locale}', [LanguageController::class, 'lang'])->name('lang');
 
     Route::group(['namespace' => 'Auth', 'prefix' => 'auth', 'as' => 'auth.'], function () {
-        Route::get('/code/captcha/{tmp}', 'LoginController@captcha')->name('default-captcha');
+        // Route::get('/code/captcha/{tmp}', 'LoginController@captcha')->name('default-captcha');
         Route::get('login', [LoginController::class, 'login'])->name('login');
         Route::post('login', [LoginController::class, 'submit']);
         Route::get('logout', [LoginController::class, 'logout'])->name('logout');

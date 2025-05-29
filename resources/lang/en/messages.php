@@ -2170,4 +2170,5 @@
   'Membership Mgt' => 'Membership Mgt',
   'Tellers' => 'Tellers',
   'How to do what?' => 'How to do what ',
+  'Updated Successfully' => 'Updated Successfully',
 );

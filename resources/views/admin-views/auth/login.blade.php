@@ -75,7 +75,7 @@
                                     </div>
                                 </div>
                             </div>
-                            @php($recaptcha = Helpers::get_business_settings('recaptcha'))
+                            <!-- @php($recaptcha = Helpers::get_business_settings('recaptcha'))
                             @if(isset($recaptcha) && $recaptcha['status'] == 1)
                                 <div class="with-100-percent" id="recaptcha_element" data-type="image"></div>
                                 <br/>
@@ -95,22 +95,9 @@
 
                                     </div>
                                 </div>
-                            @endif
+                            @endif -->
 
-                            @if(env('APP_MODE')=='demo')
-                                <div class="card-footer">
-                                    <div class="row">
-                                        <div class="col-10">
-                                            <span>{{translate('Phone')}} : +8801100000000</span><br>
-                                            <span>{{translate('Password')}} : {{translate('12345678')}}</span>
-                                        </div>
-                                        <div class="col-2">
-                                            <span class="btn btn-primary" id="copyButton"><i class="tio-copy"></i>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
+                           
 
                             <div class="d-flex justify-content-center mt-5">
                                 <button type="submit" class="btn btn-primary  sign-in-button">{{translate('sign_in')}}</button>

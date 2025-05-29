@@ -312,13 +312,14 @@
                                             <span class="text-truncate">{{ translate('All Branches') }}</span>
                                         </a>
                                     </li>
-                                    <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/agent/list') ? 'active' : '' }}">
-                                        <a class="nav-link"
-                                           href="{{ route('admin.agent.list') }}"
-                                           title="{{ translate('Branches Staff') }}">
-                                            <span class="text-truncate">{{ translate('Branches Staff') }}</span>
-                                        </a>
-                                    </li>
+                                    <li
+                                    class="navbar-vertical-aside-has-menu {{ Request::is('admin/agent/list') ? 'active' : '' }}">
+                                    <a class="nav-link" href="{{route('admin.customer.list')}}"
+                                        title="{{ translate('Branches Staff') }}">
+                                        <span class="text-truncate">{{ translate('Branches Staff') }}</span>
+                                    </a>
+                                </li>
+
                                     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/teller/list') ? 'active' : '' }}">
                                         <a class="nav-link"
                                            href="{{ route('admin.teller.list') }}"
